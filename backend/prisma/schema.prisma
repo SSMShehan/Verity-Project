@@ -1,0 +1,122 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  password     String
+  role         String   @default("STUDENT") // STUDENT, LECTURER, ADMIN
+  indexNumber  String?  @unique // IT number for students
+
+  // Relations
+  studentRegistrations StudentSemesterRegistration[]
+  lecturerModules      LecturerModuleRegistration[]
+  
+  groupMemberships     GroupMember[]
+  sentInvitations      GroupInvitation[] @relation("Inviter")
+  receivedInvitations  GroupInvitation[] @relation("Invitee")
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Year {
+  id        String     @id @default(uuid())
+  name      String     @unique // e.g. "Year 1", "Year 2", "Year 3", "Year 4"
+  semesters Semester[]
+}
+
+model Semester {
+  id        String   @id @default(uuid())
+  name      String   // e.g. "Semester 1", "Semester 2"
+  yearId    String
+  year      Year     @relation(fields: [yearId], references: [id])
+  
+  modules   Module[]
+  studentRegistrations StudentSemesterRegistration[]
+
+  @@unique([name, yearId])
+}
+
+model Module {
+  id          String   @id @default(uuid())
+  code        String   @unique // e.g. SE3040
+  name        String
+  semesterId  String
+  semester    Semester @relation(fields: [semesterId], references: [id])
+  
+  lecturers   LecturerModuleRegistration[]
+  groups      Group[]
+}
+
+// Maps a student to a specific semester (which implicitly gives access to all modules in it)
+model StudentSemesterRegistration {
+  id         String   @id @default(uuid())
+  studentId  String
+  student    User     @relation(fields: [studentId], references: [id])
+  semesterId String
+  semester   Semester @relation(fields: [semesterId], references: [id])
+
+  @@unique([studentId, semesterId])
+}
+
+// Maps a lecturer to specific modules they teach
+model LecturerModuleRegistration {
+  id         String   @id @default(uuid())
+  lecturerId String
+  lecturer   User     @relation(fields: [lecturerId], references: [id])
+  moduleId   String
+  module     Module   @relation(fields: [moduleId], references: [id])
+
+  @@unique([lecturerId, moduleId])
+}
+
+model Group {
+  id          String   @id @default(uuid())
+  name        String?
+  groupCode   String?  @unique // Generated code like GRP-SE3040-123
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id])
+  
+  githubUrl   String?
+  isFinalized Boolean  @default(false)
+  
+  members     GroupMember[]
+  invitations GroupInvitation[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GroupMember {
+  id        String   @id @default(uuid())
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id])
+  studentId String
+  student   User     @relation(fields: [studentId], references: [id])
+  isLeader  Boolean  @default(false)
+
+  @@unique([groupId, studentId])
+}
+
+model GroupInvitation {
+  id        String           @id @default(uuid())
+  groupId   String
+  group     Group            @relation(fields: [groupId], references: [id])
+  inviterId String
+  inviter   User             @relation("Inviter", fields: [inviterId], references: [id])
+  inviteeId String
+  invitee   User             @relation("Invitee", fields: [inviteeId], references: [id])
+  status    String           @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  
+  createdAt DateTime         @default(now())
+
+  @@unique([groupId, inviteeId])
+}
