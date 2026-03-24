@@ -12,16 +12,30 @@ model User {
   name         String
   email        String   @unique
   password     String
-  role         String   @default("STUDENT") // STUDENT, LECTURER, ADMIN
+  role         String   @default("STUDENT") // STUDENT, LECTURER, MANAGER
   indexNumber  String?  @unique // IT number for students
+  status       String   @default("Active") // Active, Suspended
+
+  // Profile Extensions
+  phone        String?
+  github       String?
+  linkedin     String?
+  skills       String?
+
+  // Academic Relations
+  semesterId   String?
+  semester     Semester? @relation(fields: [semesterId], references: [id])
+  modules      Module[]  @relation("LecturerModules")
 
   // Relations
-  studentRegistrations StudentSemesterRegistration[]
-  lecturerModules      LecturerModuleRegistration[]
-  
-  groupMemberships     GroupMember[]
-  sentInvitations      GroupInvitation[] @relation("Inviter")
-  receivedInvitations  GroupInvitation[] @relation("Invitee")
+  projectMembers    ProjectMember[]
+  tasksAssigned     Task[]           @relation("TaskAssignee")
+  timeLogs          TimeLog[]
+  activityLogs      ActivityLog[]
+  submissions       Submission[]
+  githubMappings    GithubContributorMap[]
+  assignmentsCreated      Assignment[]
+  assignmentSubmissions   AssignmentSubmission[] @relation("StudentAssignmentSubmissions")
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -29,94 +43,285 @@ model User {
 
 model Year {
   id        String     @id @default(uuid())
-  name      String     @unique // e.g. "Year 1", "Year 2", "Year 3", "Year 4"
+  name      String     @unique // e.g., "Year 1", "Year 2"
   semesters Semester[]
 }
 
 model Semester {
-  id        String   @id @default(uuid())
-  name      String   // e.g. "Semester 1", "Semester 2"
-  yearId    String
-  year      Year     @relation(fields: [yearId], references: [id])
-  
-  modules   Module[]
-  studentRegistrations StudentSemesterRegistration[]
-
-  @@unique([name, yearId])
+  id     String   @id @default(uuid())
+  name   String   // e.g., "Semester 1", "Semester 2"
+  yearId String
+  year   Year     @relation(fields: [yearId], references: [id])
+  modules Module[]
+  users   User[]   // Students in this semester
 }
 
 model Module {
-  id          String   @id @default(uuid())
-  code        String   @unique // e.g. SE3040
-  name        String
-  semesterId  String
-  semester    Semester @relation(fields: [semesterId], references: [id])
-  
-  lecturers   LecturerModuleRegistration[]
-  groups      Group[]
-}
-
-// Maps a student to a specific semester (which implicitly gives access to all modules in it)
-model StudentSemesterRegistration {
   id         String   @id @default(uuid())
-  studentId  String
-  student    User     @relation(fields: [studentId], references: [id])
+  code       String   @unique // e.g., "IT1010"
+  name       String
   semesterId String
   semester   Semester @relation(fields: [semesterId], references: [id])
-
-  @@unique([studentId, semesterId])
+  lecturers  User[]   @relation("LecturerModules")
 }
 
-// Maps a lecturer to specific modules they teach
-model LecturerModuleRegistration {
-  id         String   @id @default(uuid())
-  lecturerId String
-  lecturer   User     @relation(fields: [lecturerId], references: [id])
-  moduleId   String
-  module     Module   @relation(fields: [moduleId], references: [id])
 
-  @@unique([lecturerId, moduleId])
-}
-
-model Group {
+model Project {
   id          String   @id @default(uuid())
-  name        String?
-  groupCode   String?  @unique // Generated code like GRP-SE3040-123
-  moduleId    String
-  module      Module   @relation(fields: [moduleId], references: [id])
-  
-  githubUrl   String?
-  isFinalized Boolean  @default(false)
-  
-  members     GroupMember[]
-  invitations GroupInvitation[]
+  title       String   
+  description String
+  startDate   DateTime
+  endDate     DateTime
+  status      String   @default("Active") // Active, Archived
+
+  // Relations
+  members          ProjectMember[]
+  announcements    Announcement[]
+  sprints          Sprint[]
+  tasks            Task[]
+  riskFlags        RiskFlag[]
+  weeklyReports    WeeklyReport[]
+  githubRepos      GithubRepo[]
+  submissions      Submission[]
+  contributionScores ContributionScore[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
-model GroupMember {
+model ProjectMember {
   id        String   @id @default(uuid())
-  groupId   String
-  group     Group    @relation(fields: [groupId], references: [id])
-  studentId String
-  student   User     @relation(fields: [studentId], references: [id])
-  isLeader  Boolean  @default(false)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  role      String   @default("MEMBER") // LEADER, MEMBER
 
-  @@unique([groupId, studentId])
+  @@unique([projectId, userId])
 }
 
-model GroupInvitation {
-  id        String           @id @default(uuid())
-  groupId   String
-  group     Group            @relation(fields: [groupId], references: [id])
-  inviterId String
-  inviter   User             @relation("Inviter", fields: [inviterId], references: [id])
-  inviteeId String
-  invitee   User             @relation("Invitee", fields: [inviteeId], references: [id])
-  status    String           @default("PENDING") // PENDING, ACCEPTED, REJECTED
-  
-  createdAt DateTime         @default(now())
+model Announcement {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  content   String
+  isPinned  Boolean  @default(false)
+  authorId  String   // User ID
 
-  @@unique([groupId, inviteeId])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Sprint {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  startDate DateTime
+  endDate   DateTime
+
+  tasks     Task[]
+}
+
+model Task {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sprintId    String?
+  sprint      Sprint?  @relation(fields: [sprintId], references: [id])
+  title       String
+  description String?
+  assigneeId  String?
+  assignee    User?    @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  deadline    DateTime?
+  priority    String   @default("Medium") // Low, Medium, High
+  status      String   @default("To Do") // To Do, In Progress, Review, Done
+  completedAt DateTime?
+
+  statusLogs  TaskStatusLog[]
+  timeLogs    TimeLog[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TaskStatusLog {
+  id        String   @id @default(uuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  oldStatus String
+  newStatus String
+  changedBy String // User ID
+
+  createdAt DateTime @default(now())
+}
+
+model TimeLog {
+  id        String   @id @default(uuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  hours     Float    // Validated to be max 24 per day
+  logDate   DateTime @default(now())
+  
+  createdAt DateTime @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  projectId String?  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  type      String   // LOGIN, TASK_UPDATE, TIME_LOG, GITHUB_COMMIT, WEEKLY_REPORT
+  details   String?
+
+  createdAt DateTime @default(now())
+}
+
+model RiskFlag {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      String   // Low Engagement, Uneven Contribution, Last-Minute Risk, Missing Weekly Report
+  message   String
+  isResolved Boolean @default(false)
+
+  createdAt DateTime @default(now())
+}
+
+model WeeklyReport {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  weekNumber  Int
+  content     String
+  submittedBy String // User ID
+  status      String   @default("Pending") // Pending, Reviewed
+  feedback    String?
+  grade       String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ContributionScore {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  score     Float    // 0 to 100
+  breakdown Json?    
+
+  evaluatedAt DateTime @default(now())
+
+  @@unique([projectId, userId])
+}
+
+model GithubRepo {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner     String
+  repoName  String
+  url       String
+
+  commits   GithubCommit[]
+}
+
+model GithubCommit {
+  id            String   @id @default(uuid())
+  githubRepoId  String
+  githubRepo    GithubRepo @relation(fields: [githubRepoId], references: [id], onDelete: Cascade)
+  commitHash    String   @unique
+  authorName    String
+  authorEmail   String
+  message       String
+  date          DateTime
+
+  createdAt     DateTime @default(now())
+}
+
+model GithubContributorMap {
+  id            String   @id @default(uuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id]) 
+  githubEmail   String   @unique
+}
+
+model Submission {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploaderId  String
+  uploader    User     @relation(fields: [uploaderId], references: [id])
+  filePath    String
+  originalName String
+  version     Int      @default(1)
+  status      String   @default("Draft") // Draft, Submitted, Under Review, Approved, Rejected
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Assignment {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  moduleCode  String
+  moduleName  String?
+  deadline    DateTime
+  format      String
+  maxSizeMB   Int      @default(50)
+  status      String   @default("Active")
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+
+  assignmentSubmissions AssignmentSubmission[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AssignmentSubmission {
+  id            String     @id @default(uuid())
+  assignmentId  String
+  assignment    Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       User       @relation("StudentAssignmentSubmissions", fields: [studentId], references: [id])
+  fileName      String
+  filePath      String
+  late          Boolean    @default(false)
+
+  // AI & Plagiarism Check Results
+  extractedText     String?
+  aiScore           Float?       // 0-100, probability of AI-generated
+  plagiarismScore   Float?       // 0-100, highest similarity with another submission
+  riskCategory      String?      // "Low", "Medium", "High"
+  checkStatus       String       @default("Pending")  // Pending, Processing, Completed, Failed, Skipped
+  checkedAt         DateTime?
+
+  matchesA          PlagiarismMatch[] @relation("MatchA")
+  matchesB          PlagiarismMatch[] @relation("MatchB")
+
+  submittedAt   DateTime   @default(now())
+}
+
+model PlagiarismMatch {
+  id              String   @id @default(uuid())
+  assignmentId    String
+  submissionAId   String
+  submissionBId   String
+  similarityScore Float    // 0-100
+  submissionA     AssignmentSubmission @relation("MatchA", fields: [submissionAId], references: [id], onDelete: Cascade)
+  submissionB     AssignmentSubmission @relation("MatchB", fields: [submissionBId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+
+  @@unique([submissionAId, submissionBId])
+}
+
+model SystemSetting {
+  id    String @id @default("GLOBAL")
+  data  Json
 }

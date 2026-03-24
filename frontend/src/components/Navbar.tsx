@@ -20,7 +20,7 @@ const Navbar = () => {
         >
             <div className="flex items-center space-x-2">
                 {/* Sleek Gradient Logo */}
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-cyan-500 shadow-md shadow-blue-500/20 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-600 to-teal-500 shadow-md shadow-emerald-500/20 flex items-center justify-center">
                     <div className="w-3 h-3 bg-white rounded-sm rotate-45"></div>
                 </div>
                 <span className="text-xl font-bold tracking-tight text-slate-900">
@@ -33,7 +33,7 @@ const Navbar = () => {
                     <Link
                         key={item}
                         to={`#${item.toLowerCase()}`}
-                        className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors"
+                        className="text-sm font-semibold text-slate-600 hover:text-emerald-600 transition-colors"
                     >
                         {item}
                     </Link>
@@ -42,12 +42,12 @@ const Navbar = () => {
 
             {/* Auth Buttons */}
             <div className="hidden lg:flex items-center space-x-4">
-                <Link to="/login" className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors">
+                <Link to="/login" className="text-sm font-bold text-slate-600 hover:text-emerald-600 transition-colors">
                     Sign In
                 </Link>
                 <Link to="/register" className="group relative inline-flex items-center justify-center px-5 py-2.5 text-sm font-bold text-white transition-all duration-200 bg-slate-900 border border-transparent rounded-xl hover:bg-slate-800 hover:shadow-lg hover:-translate-y-0.5 overflow-hidden">
                     <span className="relative z-10">Get Started</span>
-                    <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-emerald-600 to-teal-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </Link>
             </div>
         </motion.nav>

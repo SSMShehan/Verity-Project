@@ -1,191 +1,89 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../config/prisma');
 
-const generateToken = (id, role) => {
-    return jwt.sign({ id, role }, process.env.JWT_SECRET || 'secret', {
-        expiresIn: '30d',
-    });
+const register = async (req, res) => {
+    try {
+        const { name, email, password, role, indexNumber } = req.body;
+
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+        if (existingUser) return res.status(400).json({ message: 'User already exists' });
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = await prisma.user.create({
+            data: { name, email, password: hashedPassword, role: role || 'STUDENT', indexNumber }
+        });
+
+        res.status(201).json({ message: 'User registered successfully', user: { id: user.id, email: user.email, role: user.role } });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
 };
 
-// Register Student
-exports.registerStudent = async (req, res) => {
+const registerStudent = async (req, res) => {
     try {
         const { name, email, password, indexNumber, semesterId } = req.body;
 
-        // Check if user exists
-        const userExists = await prisma.user.findFirst({
-            where: {
-                OR: [{ email }, { indexNumber }]
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+        if (existingUser) return res.status(400).json({ message: 'User already exists' });
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = await prisma.user.create({
+            data: { 
+                name, email, password: hashedPassword, role: 'STUDENT', indexNumber, semesterId 
             }
         });
 
-        if (userExists) {
-            return res.status(400).json({ message: 'User with email or index number already exists' });
-        }
+        const token = jwt.sign({ id: user.id, role: user.role, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        // Create User and Semester Registration in a transaction
-        const user = await prisma.$transaction(async (prisma) => {
-            const newUser = await prisma.user.create({
-                data: {
-                    name,
-                    email,
-                    password: hashedPassword,
-                    indexNumber,
-                    role: 'STUDENT',
-                },
-            });
-
-            if (semesterId) {
-                await prisma.studentSemesterRegistration.create({
-                    data: {
-                        studentId: newUser.id,
-                        semesterId,
-                    }
-                });
-            }
-
-            return newUser;
-        });
-
-        res.status(201).json({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            token: generateToken(user.id, user.role),
-        });
+        res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error during student registration', error: error.message });
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 
-// Register Lecturer
-exports.registerLecturer = async (req, res) => {
+const registerLecturer = async (req, res) => {
     try {
         const { name, email, password, moduleIds } = req.body;
 
-        const userExists = await prisma.user.findUnique({ where: { email } });
-        if (userExists) {
-            return res.status(400).json({ message: 'User already exists' });
-        }
+        const existingUser = await prisma.user.findUnique({ where: { email } });
+        if (existingUser) return res.status(400).json({ message: 'User already exists' });
 
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        const user = await prisma.$transaction(async (prisma) => {
-            const newUser = await prisma.user.create({
-                data: {
-                    name,
-                    email,
-                    password: hashedPassword,
-                    role: 'LECTURER',
-                },
-            });
-
-            if (moduleIds && moduleIds.length > 0) {
-                const registrations = moduleIds.map(moduleId => ({
-                    lecturerId: newUser.id,
-                    moduleId
-                }));
-                await prisma.lecturerModuleRegistration.createMany({
-                    data: registrations
-                });
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const user = await prisma.user.create({
+            data: { 
+                name, email, password: hashedPassword, role: 'LECTURER',
+                modules: { connect: moduleIds.map(id => ({ id })) }
             }
-
-            return newUser;
         });
 
-        res.status(201).json({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            token: generateToken(user.id, user.role),
-        });
+        const token = jwt.sign({ id: user.id, role: user.role, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+        res.status(201).json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error during lecturer registration', error: error.message });
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 
-// Login
-exports.login = async (req, res) => {
+const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
-
+        let { email, password } = req.body;
+        if (email) email = email.trim(); // Prevent trailing space issues
+        
         const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) {
-            return res.status(401).json({ message: 'Invalid credentials' });
-        }
+        if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
         const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid credentials' });
-        }
+        if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-        res.json({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            token: generateToken(user.id, user.role),
-        });
+        const token = jwt.sign({ id: user.id, role: user.role, email: user.email }, process.env.JWT_SECRET, { expiresIn: '1d' });
+
+        res.status(200).json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role } });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error during login', error: error.message });
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 
-// Get Current User Profile
-exports.getProfile = async (req, res) => {
-    try {
-        const user = await prisma.user.findUnique({
-            where: { id: req.user.id },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-                indexNumber: true,
-                studentRegistrations: {
-                    include: {
-                        semester: {
-                            include: {
-                                modules: true,
-                                year: true
-                            }
-                        }
-                    }
-                },
-                lecturerModules: {
-                    include: {
-                        module: {
-                            include: {
-                                semester: {
-                                    include: {
-                                        year: true
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
+module.exports = { register, registerStudent, registerLecturer, login };
 
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
 
-        res.json(user);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server error fetching profile', error: error.message });
-    }
-};

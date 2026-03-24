@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, BookOpenText } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useForm } from 'react-hook-form';
 
 const Register = () => {
     const navigate = useNavigate();
@@ -9,21 +10,25 @@ const Register = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Form states
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [indexNumber, setIndexNumber] = useState('');
+    const {
+        register,
+        handleSubmit,
+        watch,
+        setValue,
+        formState: { errors },
+        clearErrors
+    } = useForm({
+        mode: 'onChange' // Triggers validation on every change
+    });
 
     // Academic Data States
     const [years, setYears] = useState<any[]>([]);
     const [semesters, setSemesters] = useState<any[]>([]);
     const [modules, setModules] = useState<any[]>([]);
 
-    // Selected Academic States
-    const [selectedYearId, setSelectedYearId] = useState('');
-    const [selectedSemesterId, setSelectedSemesterId] = useState('');
+    // Selected Academic States for Lecturer
     const [selectedModuleIds, setSelectedModuleIds] = useState<string[]>([]);
+    const selectedYearId = watch('yearId');
 
     // Fetch initial data
     useEffect(() => {
@@ -39,9 +44,10 @@ const Register = () => {
             fetchSemesters(selectedYearId);
         } else {
             setSemesters([]);
-            setSelectedSemesterId('');
         }
-    }, [selectedYearId]);
+        // Automatically clear semester when year changes
+        setValue('semesterId', '');
+    }, [selectedYearId, setValue]);
 
     const fetchYears = async () => {
         try {
@@ -74,22 +80,34 @@ const Register = () => {
     };
 
     const toggleModuleSelection = (id: string) => {
-        setSelectedModuleIds(prev =>
-            prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
-        );
+        const newModules = selectedModuleIds.includes(id) 
+            ? selectedModuleIds.filter(m => m !== id) 
+            : [...selectedModuleIds, id];
+        
+        setSelectedModuleIds(newModules);
+        setValue('moduleIds', newModules, { shouldValidate: role === 'LECTURER' });
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const onSubmitUser = async (formData: any) => {
+        if (role === 'LECTURER' && selectedModuleIds.length === 0) {
+            setError('Please select at least one module to assign to your profile.');
+            return;
+        }
+
         setLoading(true);
         setError('');
 
         const endpoint = role === 'STUDENT' ? '/api/auth/register/student' : '/api/auth/register/lecturer';
 
-        const payload: any = { name, email, password };
+        const payload: any = { 
+            name: formData.name, 
+            email: formData.email, 
+            password: formData.password 
+        };
+
         if (role === 'STUDENT') {
-            payload.indexNumber = indexNumber;
-            payload.semesterId = selectedSemesterId;
+            payload.indexNumber = formData.indexNumber;
+            payload.semesterId = formData.semesterId;
         } else {
             payload.moduleIds = selectedModuleIds;
         }
@@ -119,10 +137,10 @@ const Register = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#FAFCFF] relative overflow-hidden py-12 px-6">
-            <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-gradient-to-bl from-blue-100/50 to-purple-50/20 rounded-full blur-[100px] -z-10" />
+            <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-gradient-to-bl from-emerald-100/50 to-emerald-50/20 rounded-full blur-[100px] -z-10" />
 
             <Link to="/" className="absolute top-8 left-8 flex items-center space-x-2 group">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-sm transition-transform group-hover:scale-105">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-600 to-teal-600 shadow-sm transition-transform group-hover:scale-105">
                     <BookOpenText className="w-4 h-4 text-white" />
                 </div>
                 <span className="text-xl font-bold tracking-tight text-slate-800">VERITY</span>
@@ -143,15 +161,15 @@ const Register = () => {
                 <div className="flex p-1 mb-8 bg-slate-100 rounded-xl">
                     <button
                         type="button"
-                        onClick={() => setRole('STUDENT')}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${role === 'STUDENT' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        onClick={() => { setRole('STUDENT'); clearErrors(); }}
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${role === 'STUDENT' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         Student
                     </button>
                     <button
                         type="button"
-                        onClick={() => setRole('LECTURER')}
-                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${role === 'LECTURER' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        onClick={() => { setRole('LECTURER'); clearErrors(); }}
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${role === 'LECTURER' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
                         Lecturer
                     </button>
@@ -163,15 +181,33 @@ const Register = () => {
                     </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit(onSubmitUser)} className="space-y-5">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1.5">Full Name</label>
-                            <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium" placeholder="John Doe" />
+                            <input 
+                                type="text" 
+                                {...register('name', { 
+                                    required: 'Full name is required',
+                                    pattern: { value: /^[a-zA-Z\s]*$/, message: 'Only blocks of letters and spaces allowed' }
+                                })} 
+                                className={`w-full px-4 py-3 bg-white/80 border rounded-xl text-slate-900 focus:outline-none focus:ring-2 font-medium ${errors.name ? 'border-red-400 focus:ring-red-500/50' : 'border-slate-200 focus:ring-emerald-500/50'}`}
+                                placeholder="John Doe" 
+                            />
+                            {errors.name && <p className="text-red-500 text-xs mt-1 font-bold">{errors.name.message as string}</p>}
                         </div>
                         <div>
                             <label className="block text-sm font-bold text-slate-700 mb-1.5">Email address</label>
-                            <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium" placeholder="john@uni.edu" />
+                            <input 
+                                type="email" 
+                                {...register('email', { 
+                                    required: 'Email is required',
+                                    pattern: { value: /^\S+@\S+$/i, message: 'Invalid email address' }
+                                })} 
+                                className={`w-full px-4 py-3 bg-white/80 border rounded-xl text-slate-900 focus:outline-none focus:ring-2 font-medium ${errors.email ? 'border-red-400 focus:ring-red-500/50' : 'border-slate-200 focus:ring-emerald-500/50'}`}
+                                placeholder="john@uni.edu" 
+                            />
+                            {errors.email && <p className="text-red-500 text-xs mt-1 font-bold">{errors.email.message as string}</p>}
                         </div>
                     </div>
 
@@ -179,23 +215,41 @@ const Register = () => {
                         <>
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 mb-1.5">Student Index / IT Number</label>
-                                <input type="text" required value={indexNumber} onChange={(e) => setIndexNumber(e.target.value)} className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium" placeholder="IT21000000" />
+                                <input 
+                                    type="text" 
+                                    {...register('indexNumber', { 
+                                        required: 'IT Number is required',
+                                        pattern: { value: /^IT\d{8}$/i, message: 'Must start with IT followed by 8 digits (e.g. IT21000000)' }
+                                    })} 
+                                    className={`w-full px-4 py-3 bg-white/80 border rounded-xl text-slate-900 focus:outline-none focus:ring-2 font-medium uppercase ${errors.indexNumber ? 'border-red-400 focus:ring-red-500/50' : 'border-slate-200 focus:ring-emerald-500/50'}`}
+                                    placeholder="IT21000000" 
+                                />
+                                {errors.indexNumber && <p className="text-red-500 text-xs mt-1 font-bold">{errors.indexNumber.message as string}</p>}
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-1.5">Academic Year</label>
-                                    <select required value={selectedYearId} onChange={(e) => setSelectedYearId(e.target.value)} className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium">
+                                    <select 
+                                        {...register('yearId', { required: 'Year is required' })} 
+                                        className={`w-full px-4 py-3 bg-white/80 border rounded-xl text-slate-900 focus:outline-none focus:ring-2 font-medium ${errors.yearId ? 'border-red-400 focus:ring-red-500/50' : 'border-slate-200 focus:ring-emerald-500/50'}`}
+                                    >
                                         <option value="">Select Year...</option>
                                         {years.map(y => <option key={y.id} value={y.id}>{y.name}</option>)}
                                     </select>
+                                    {errors.yearId && <p className="text-red-500 text-xs mt-1 font-bold">{errors.yearId.message as string}</p>}
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-1.5">Semester</label>
-                                    <select required disabled={!selectedYearId} value={selectedSemesterId} onChange={(e) => setSelectedSemesterId(e.target.value)} className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 font-medium disabled:opacity-50">
+                                    <select 
+                                        {...register('semesterId', { required: 'Semester is required' })} 
+                                        disabled={!selectedYearId} 
+                                        className={`w-full px-4 py-3 bg-white/80 border rounded-xl text-slate-900 focus:outline-none focus:ring-2 font-medium disabled:opacity-50 ${errors.semesterId ? 'border-red-400 focus:ring-red-500/50' : 'border-slate-200 focus:ring-emerald-500/50'}`}
+                                    >
                                         <option value="">Select Semester...</option>
                                         {semesters.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                     </select>
+                                    {errors.semesterId && <p className="text-red-500 text-xs mt-1 font-bold">{errors.semesterId.message as string}</p>}
                                 </div>
                             </div>
                         </>
@@ -207,7 +261,7 @@ const Register = () => {
                                     <label key={mod.id} className="flex items-center space-x-3 p-2 hover:bg-slate-50 rounded-lg cursor-pointer">
                                         <input
                                             type="checkbox"
-                                            className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                                            className="w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500"
                                             checked={selectedModuleIds.includes(mod.id)}
                                             onChange={() => toggleModuleSelection(mod.id)}
                                         />
@@ -218,13 +272,30 @@ const Register = () => {
                             </div>
                         </div>
                     )}
-
+                    
                     <div>
                         <label className="block text-sm font-bold text-slate-700 mb-1.5">Password</label>
-                        <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 bg-white/80 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-medium" placeholder="••••••••" />
+                        <input 
+                            type="password" 
+                            {...register('password', { 
+                                required: 'Password is required',
+                                minLength: { value: 8, message: 'Password must be at least 8 characters' },
+                                pattern: { 
+                                    value: /^(?=.*[A-Za-z])(?=.*\d)/, 
+                                    message: 'Password must contain at least one letter and one number'
+                                }
+                            })} 
+                            className={`w-full px-4 py-3 bg-white/80 border rounded-xl text-slate-900 focus:outline-none focus:ring-2 font-medium transition-all ${errors.password ? 'border-red-400 focus:ring-red-500/50' : 'border-slate-200 focus:ring-emerald-500/50'}`}
+                            placeholder="••••••••" 
+                        />
+                        {errors.password && <p className="text-red-500 text-xs mt-1 font-bold">{errors.password.message as string}</p>}
                     </div>
 
-                    <button type="submit" disabled={loading || (role === 'STUDENT' ? !selectedSemesterId : selectedModuleIds.length === 0)} className="w-full flex items-center justify-center py-3.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mt-4 group">
+                    <button 
+                        type="submit" 
+                        disabled={loading} 
+                        className="w-full flex items-center justify-center py-3.5 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed mt-4 group"
+                    >
                         {loading ? (
                             <span className="flex items-center space-x-2">
                                 <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
@@ -242,7 +313,7 @@ const Register = () => {
                 <div className="mt-8 text-center">
                     <p className="text-sm font-medium text-slate-500">
                         Already have an account?{' '}
-                        <Link to="/login" className="font-bold text-blue-600 hover:text-blue-700">
+                        <Link to="/login" className="font-bold text-emerald-600 hover:text-emerald-700">
                             Sign in here
                         </Link>
                     </p>
@@ -253,3 +324,4 @@ const Register = () => {
 };
 
 export default Register;
+

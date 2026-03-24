@@ -1,0 +1,95 @@
+import { useForm } from 'react-hook-form';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { useState } from 'react';
+
+export default function TaskForm() {
+  const { register, handleSubmit, formState: { errors } } = useForm();
+
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  
+  const onSubmit = async (data: any) => {
+    setLoading(true);
+    try {
+      const resp = await axios.post('http://localhost:5000/api/task/create', {
+        projectId: id,
+        title: data.title,
+        description: data.description,
+        assigneeEmail: data.assignee,
+        priority: data.priority,
+        deadline: data.deadline
+      });
+      if (resp.data.success) {
+        navigate(`/student/projects/${id}/kanban`);
+      }
+    } catch (e) {
+      console.error("Error creating task", e);
+      alert('Failed to save task.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto bg-white/80 backdrop-blur-md p-8 rounded-3xl shadow-xl border border-slate-100 mt-6">
+      <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-6">Create New Task</h2>
+      
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-2">Title</label>
+          <input 
+            {...register('title', { required: 'Task title is required' })} 
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none font-medium"
+            placeholder="e.g. Implement Login Page UI"
+          />
+          {errors.title && <p className="text-red-500 text-xs mt-1.5 font-bold">{errors.title.message as string}</p>}
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-2">Description</label>
+          <textarea 
+            {...register('description')} 
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl min-h-[100px] outline-none font-medium"
+            placeholder="Detailed task instructions..."
+          ></textarea>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Assignee (Email)</label>
+            <input 
+              {...register('assignee', { required: 'Assignee is required', pattern: { value: /^\S+@\S+$/i, message: "Invalid email" } })} 
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium"
+              placeholder="member@student.com"
+            />
+            {errors.assignee && <p className="text-red-500 text-xs mt-1.5 font-bold">{errors.assignee.message as string}</p>}
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Priority</label>
+            <select {...register('priority')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-700">
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-2">Deadline</label>
+          <input 
+            type="date"
+            {...register('deadline', { required: 'Deadline is required' })} 
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-700"
+          />
+          {errors.deadline && <p className="text-red-500 text-xs mt-1.5 font-bold">{errors.deadline.message as string}</p>}
+        </div>
+
+        <button disabled={loading} type="submit" className="w-full bg-slate-900 text-white font-bold py-4 rounded-xl hover:bg-emerald-600 transition-colors shadow-lg shadow-slate-900/10 mt-6 disabled:opacity-50">
+          {loading ? 'Saving...' : 'Create Task'}
+        </button>
+      </form>
+    </div>
+  );
+}

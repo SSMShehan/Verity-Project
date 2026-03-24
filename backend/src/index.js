@@ -11,12 +11,30 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
 const authRoutes = require('./routes/auth');
 const academicRoutes = require('./routes/academic');
+const projectRoutes = require('./routes/project');
+const announcementRoutes = require('./routes/announcement');
+const taskRoutes = require('./routes/task');
+const reportRoutes = require('./routes/report');
+const submissionRoutes = require('./routes/submission');
+const userRoutes = require('./routes/user');
+const assignmentRoutes = require('./routes/assignment');
+const systemRoutes = require('./routes/system');
+const githubRoutes = require('./routes/github');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/academic', academicRoutes);
+app.use('/api/project', projectRoutes);
+app.use('/api/announcement', announcementRoutes);
+app.use('/api/task', taskRoutes);
+app.use('/api/report', reportRoutes);
+app.use('/api/submission', submissionRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/assignment', assignmentRoutes);
+app.use('/api/system', systemRoutes);
+app.use('/api/github', githubRoutes);
+
 
 // Base route
 app.get('/', (req, res) => {
