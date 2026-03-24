@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { Plus, FileText, Calendar, Clock, UploadCloud, CheckCircle2, ArrowLeft, Download, Eye, AlertCircle, Trash2, Loader2 } from 'lucide-react';
+import { Plus, FileText, Calendar, Clock, UploadCloud, CheckCircle2, ArrowLeft, Download, Eye, AlertCircle, Trash2, Loader2, Search } from 'lucide-react';
 import { useModule } from '../../context/ModuleContext';
 
 const API = 'http://localhost:5000/api/assignment';
@@ -26,11 +26,11 @@ export default function LecturerAssignments() {
   const [allAssignments, setAssignments] = useState<AssignmentData[]>([]);
   const [loading, setLoading] = useState(true);
   const { selectedModule } = useModule();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchAssignments = async () => {
     try {
       setLoading(true);
-      // Get lecturer ID from localStorage
       const stored = localStorage.getItem('user');
       const parsed = stored ? JSON.parse(stored) : null;
       const user = parsed?.user || parsed;
@@ -63,9 +63,14 @@ export default function LecturerAssignments() {
     }
   };
 
-  const assignments = selectedModule === 'ALL'
+  const filteredByModule = selectedModule === 'ALL'
     ? allAssignments
     : allAssignments.filter(a => a.moduleCode === selectedModule);
+
+  const assignments = filteredByModule.filter(a =>
+    a.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    a.moduleCode.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (selectedAssignment) {
     return <AssignmentSubmissionsView assignment={selectedAssignment} onBack={() => setSelectedAssignment(null)} />;
@@ -74,17 +79,29 @@ export default function LecturerAssignments() {
   return (
     <div className="animate-fade-up max-w-5xl mx-auto space-y-8">
       {/* Page Header */}
-      <div className="page-header border-b-indigo-200 flex sm:items-center justify-between flex-col sm:flex-row gap-4">
+      <div className="page-header border-b-indigo-200 flex sm:items-center justify-between flex-col md:flex-row gap-6">
         <div>
           <h1 className="page-title text-indigo-900">Assignments & Submissions</h1>
           <p className="page-subtitle text-slate-500">Create global file submission drops for students to upload their work.</p>
         </div>
-        <button 
-          onClick={() => setIsCreating(true)}
-          className="bg-indigo-900 hover:bg-indigo-900 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-indigo-900/20 transition-all"
-        >
-          <Plus className="w-5 h-5" /> New Assignment
-        </button>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="relative flex-1 md:w-64">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+            <input 
+              type="text"
+              placeholder="Search assignments..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700"
+            />
+          </div>
+          <button 
+            onClick={() => setIsCreating(true)}
+            className="bg-indigo-900 hover:bg-indigo-900 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-indigo-900/20 transition-all shrink-0"
+          >
+            <Plus className="w-5 h-5" /> New Assignment
+          </button>
+        </div>
       </div>
 
       {isCreating ? (
@@ -99,8 +116,8 @@ export default function LecturerAssignments() {
       ) : assignments.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 border-dashed">
           <FileText className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-          <h3 className="text-xl font-black text-slate-800">No Assignments Yet</h3>
-          <p className="text-slate-500 font-medium mt-1">Click "New Assignment" to create your first file submission drop.</p>
+          <h3 className="text-xl font-black text-slate-800">No Assignments Found</h3>
+          <p className="text-slate-500 font-medium mt-1">Try adjusting your search or module filter, or create a new one.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
@@ -455,14 +472,25 @@ function AssignmentSubmissionsView({ assignment, onBack }: { assignment: Assignm
                     </td>
                     <td className="py-4 px-6">
                        {sub.checkStatus === 'Completed' ? (
-                           <div className="flex flex-col">
-                               <div className={`text-sm font-black ${sub.aiScore > 70 ? 'text-red-600' : sub.aiScore > 40 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                   {sub.aiScore?.toFixed(1)}%
-                               </div>
-                               <div className="text-[10px] text-slate-400 font-bold uppercase">AI Prob.</div>
-                           </div>
-                       ) : sub.checkStatus === 'Processing' ? (
+                           sub.aiScore != null && sub.aiScore !== undefined ? (
+                             <div className="flex flex-col">
+                                 <div className={`text-sm font-black ${sub.aiScore > 70 ? 'text-red-600' : sub.aiScore > 40 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                     {Number(sub.aiScore).toFixed(1)}%
+                                 </div>
+                                 <div className="text-[10px] text-slate-400 font-bold uppercase">AI probability</div>
+                             </div>
+                           ) : (
+                             <div className="flex flex-col max-w-[140px]">
+                               <span className="text-xs text-slate-500 font-semibold" title="Set SAPLING_API_KEY or HUGGINGFACE_API_KEY in the backend .env file.">
+                                 Not available
+                               </span>
+                               <span className="text-[10px] text-slate-400 font-bold uppercase">No AI API key</span>
+                             </div>
+                           )
+                       ) : sub.checkStatus === 'Processing' || sub.checkStatus === 'Pending' ? (
                            <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />
+                       ) : sub.checkStatus === 'Skipped' ? (
+                           <span className="text-xs text-slate-400" title="Only PDF uploads are analyzed automatically.">Skipped</span>
                        ) : (
                            <span className="text-xs text-slate-400">N/A</span>
                        )}
@@ -470,17 +498,26 @@ function AssignmentSubmissionsView({ assignment, onBack }: { assignment: Assignm
                     <td className="py-4 px-6">
                        {sub.checkStatus === 'Completed' ? (
                            <div className="flex flex-col">
-                               <div className={`text-sm font-black ${sub.plagiarismScore > 70 ? 'text-red-600' : sub.plagiarismScore > 40 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                                   {sub.plagiarismScore?.toFixed(1)}%
+                               <div className={`text-sm font-black ${(sub.plagiarismScore ?? 0) > 70 ? 'text-red-600' : (sub.plagiarismScore ?? 0) > 40 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                                   {Number(sub.plagiarismScore ?? 0).toFixed(1)}%
                                </div>
-                               <div className="text-[10px] text-slate-400 font-bold uppercase">Similarity</div>
+                               <div className="text-[10px] text-slate-400 font-bold uppercase">Max similarity</div>
                            </div>
                        ) : (
-                           <span className="text-xs text-slate-400">-</span>
+                           <span className="text-xs text-slate-400">—</span>
                        )}
                     </td>
                     <td className="py-4 px-6">
-                       {sub.checkStatus === 'Completed' ? getRiskBadge(sub.riskCategory) : <span className="text-xs text-slate-400 italic">{sub.checkStatus}</span>}
+                       {sub.checkStatus === 'Completed' ? getRiskBadge(sub.riskCategory)
+                         : sub.checkStatus === 'Failed' ? (
+                           <span className="badge bg-red-50 text-red-700 border border-red-200" title="e.g. PDF download or text extraction failed — check server logs.">Check failed</span>
+                         ) : sub.checkStatus === 'Skipped' ? (
+                           <span className="badge badge-slate">Skipped</span>
+                         ) : sub.checkStatus === 'Processing' || sub.checkStatus === 'Pending' ? (
+                           <span className="text-xs text-slate-400 italic">{sub.checkStatus}</span>
+                         ) : (
+                           <span className="text-xs text-slate-400 italic">{sub.checkStatus}</span>
+                         )}
                     </td>
                     <td className="py-4 px-6">
                       {sub.late ? (

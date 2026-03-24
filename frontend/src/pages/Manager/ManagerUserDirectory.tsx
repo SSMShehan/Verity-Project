@@ -4,6 +4,7 @@ import { Search, UserX, UserCheck, ShieldAlert, Mail } from 'lucide-react';
 export default function ManagerUserDirectory() {
   const [users, setUsers] = useState<any[]>([]);
   const [filterRole, setFilterRole] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchUsers();
@@ -21,7 +22,14 @@ export default function ManagerUserDirectory() {
     }
   };
 
-  const filteredUsers = filterRole === 'All' ? users : users.filter(u => u.role === filterRole);
+  const filteredUsers = users.filter(user => {
+    const matchesRole = filterRole === 'All' || user.role === filterRole;
+    const matchesSearch = 
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesRole && matchesSearch;
+  });
 
   const toggleStatus = async (dbId: string) => {
     try {
@@ -64,6 +72,8 @@ export default function ManagerUserDirectory() {
             <input 
               type="text" 
               placeholder="Search by ID or Name..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-rose-500/20"
             />
           </div>

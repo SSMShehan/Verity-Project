@@ -1,72 +1,60 @@
-import { Mail, CheckCircle, Clock, GitCommit, FileText, Activity, AlertTriangle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { Mail, CheckCircle, Clock, GitCommit, FileText, Activity, AlertTriangle, Loader2, Github } from 'lucide-react';
+
+type Member = {
+  userId: string;
+  id: string;
+  name: string;
+  role: string;
+  email: string;
+  githubProfileLinked?: boolean;
+  status: 'Healthy' | 'At Risk';
+  metrics: {
+    tasksAssigned: number;
+    tasksCompleted: number;
+    commits: number;
+    prMerges: number;
+    docUploads: number;
+    engagementScore: number;
+  };
+  recentActivity: string;
+};
+
+const API = 'http://localhost:5000/api/project';
 
 export default function LecturerGroupMembers() {
-  const members = [
-    {
-      id: 'IT21012345',
-      name: 'John Doe',
-      role: 'Team Leader / Backend Dev',
-      email: 'it21012345@my.sliit.lk',
-      status: 'Healthy',
-      metrics: {
-        tasksAssigned: 12,
-        tasksCompleted: 10,
-        commits: 45,
-        prMerges: 12,
-        docUploads: 3,
-        engagementScore: 92
-      },
-      recentActivity: 'Merged PR #42 "Auth Service Integration" 2 hours ago.'
-    },
-    {
-      id: 'IT21098765',
-      name: 'Alex Smith',
-      role: 'Frontend Developer',
-      email: 'it21098765@my.sliit.lk',
-      status: 'At Risk',
-      metrics: {
-        tasksAssigned: 15,
-        tasksCompleted: 4,
-        commits: 8,
-        prMerges: 2,
-        docUploads: 0,
-        engagementScore: 45
-      },
-      recentActivity: 'Closed task "Build Login UI" 5 days ago.'
-    },
-    {
-      id: 'IT21045678',
-      name: 'Maria Garcia',
-      role: 'QA / DevOps Engineer',
-      email: 'it21045678@my.sliit.lk',
-      status: 'Healthy',
-      metrics: {
-        tasksAssigned: 9,
-        tasksCompleted: 8,
-        commits: 32,
-        prMerges: 8,
-        docUploads: 5,
-        engagementScore: 88
-      },
-      recentActivity: 'Uploaded "Test Execution Report v2.pdf" yesterday.'
-    },
-    {
-      id: 'IT21055555',
-      name: 'Sam Taylor',
-      role: 'Database Administrator',
-      email: 'it21055555@my.sliit.lk',
-      status: 'Healthy',
-      metrics: {
-        tasksAssigned: 10,
-        tasksCompleted: 7,
-        commits: 18,
-        prMerges: 4,
-        docUploads: 2,
-        engagementScore: 78
-      },
-      recentActivity: 'Updated Database Schema PR #38 yesterday.'
-    }
-  ];
+  const { id } = useParams();
+  const [members, setMembers] = useState<Member[]>([]);
+  const [membersMissingGithub, setMembersMissingGithub] = useState<{ userId: string; name: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${API}/member-tracking/${id}`);
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || 'Failed to load member tracking data');
+        }
+        if (!cancelled) {
+          setMembers(data.members || []);
+          setMembersMissingGithub(Array.isArray(data.membersMissingGithub) ? data.membersMissingGithub : []);
+        }
+      } catch (e: any) {
+        if (!cancelled) setError(e.message || 'Failed to load member tracking data');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    return () => { cancelled = true; };
+  }, [id]);
 
   return (
     <div className="animate-fade-up space-y-6">
@@ -77,7 +65,45 @@ export default function LecturerGroupMembers() {
         <span className="badge badge-amber py-0.5 px-2">Lecturer View Only</span>
       </div>
 
+      {loading && (
+        <div className="card p-10 text-center">
+          <Loader2 className="w-6 h-6 animate-spin text-amber-600 mx-auto mb-2" />
+          <p className="text-sm font-semibold text-slate-500">Loading member analytics...</p>
+        </div>
+      )}
+
+      {!loading && !error && membersMissingGithub.length > 0 && (
+        <div className="card p-4 border-blue-200 bg-blue-50/70 flex gap-3 text-sm text-slate-800">
+          <div className="shrink-0 p-2 rounded-xl bg-white border border-blue-100">
+            <Github className="w-5 h-5 text-slate-700" />
+          </div>
+          <div>
+            <p className="font-bold text-slate-900 mb-1">GitHub profile not set for some members</p>
+            <p className="text-slate-700 leading-relaxed">
+              Ask these students to add their <strong>GitHub profile URL</strong> on their Verity account, then sync the repo on <strong>GitHub Sync</strong>:{' '}
+              <span className="font-semibold text-slate-900">
+                {membersMissingGithub.map((m) => m.name).join(', ')}
+              </span>
+              .
+            </p>
+          </div>
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="card p-6 border border-red-200 bg-red-50 text-red-700 text-sm font-semibold">
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && members.length === 0 && (
+        <div className="card p-8 text-center text-sm font-semibold text-slate-500">
+          No member analytics available yet for this group.
+        </div>
+      )}
+
       {/* Members Grid */}
+      {!loading && !error && members.length > 0 && (
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {members.map(member => {
           const isAtRisk = member.status === 'At Risk';
@@ -101,13 +127,18 @@ export default function LecturerGroupMembers() {
                     </div>
                   </div>
                 </div>
-                {isAtRisk && (
-                  <div className="flex flex-col items-end">
+                <div className="flex flex-col items-end gap-1">
+                  {member.githubProfileLinked === false && (
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded">
+                      No GitHub URL
+                    </span>
+                  )}
+                  {isAtRisk && (
                     <span className="badge badge-amber flex items-center gap-1.5 py-1 px-2.5">
                       <AlertTriangle className="w-3.5 h-3.5" /> High Risk
                     </span>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               {/* Email & Contact */}
@@ -148,6 +179,21 @@ export default function LecturerGroupMembers() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl text-center">
+                  <div className="text-base font-black text-slate-800">{member.metrics.prMerges}</div>
+                  <div className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">PR Merges</div>
+                </div>
+                <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl text-center">
+                  <div className="text-base font-black text-slate-800">
+                    {member.metrics.tasksAssigned > 0
+                      ? Math.round((member.metrics.tasksCompleted / member.metrics.tasksAssigned) * 100)
+                      : 0}%
+                  </div>
+                  <div className="text-[10px] font-bold uppercase text-slate-500 tracking-wider">Task Completion</div>
+                </div>
+              </div>
+
               {/* Latest Individual Context */}
               <div className="bg-white border text-sm border-slate-200 p-4 rounded-xl flex items-start gap-3 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
                 <Clock className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
@@ -161,6 +207,7 @@ export default function LecturerGroupMembers() {
           );
         })}
       </div>
+      )}
     </div>
   );
 }

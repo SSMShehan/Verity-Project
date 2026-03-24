@@ -65,6 +65,10 @@ const StudentProfile = () => {
       });
       if (resp.data.success) {
         setUser(resp.data.user);
+        // Refresh local storage so Navbar updates immediately
+        const stored = JSON.parse(localStorage.getItem('user') || '{}');
+        stored.user = resp.data.user;
+        localStorage.setItem('user', JSON.stringify(stored));
         setIsEditing(false);
       }
     } catch (e: any) {

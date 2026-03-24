@@ -1,11 +1,25 @@
-import { ShieldCheck, CheckCircle, GitCommit, Clock } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useParams } from 'react-router-dom';
+import { ShieldCheck, CheckCircle, GitCommit, Clock, Loader2, Github } from 'lucide-react';
 
+const API = 'http://localhost:5000/api/project';
 
-const members = [
-  { name: 'John Doe',     role: 'Leader', score: 92, taskRate: 100, gitRate: 85, timeSync: 90 },
-  { name: 'Alex Smith',   role: 'Member', score: 45, taskRate: 40,  gitRate: 30, timeSync: 65 },
-  { name: 'Maria Garcia', role: 'Member', score: 88, taskRate: 90,  gitRate: 95, timeSync: 80 },
-];
+interface FairnessMember {
+  userId: string;
+  name: string;
+  role: 'Leader' | 'Member';
+  score: number;
+  taskRate: number;
+  gitRate: number;
+  timeSync: number;
+  githubProfileLinked?: boolean;
+  metrics: {
+    assignedTasks: number;
+    doneTasks: number;
+    gitCommits: number;
+    weeklyReports: number;
+  };
+}
 
 function ScoreRing({ score }: { score: number }) {
   const r = 52;
@@ -46,13 +60,73 @@ function Bar({ value, color }: { value: number; color: string }) {
   );
 }
 
-import { useLocation } from 'react-router-dom';
-
 export default function FairnessAnalytics() {
+  const { id } = useParams();
   const location = useLocation();
   const isLecturer = location.pathname.includes('/lecturer');
-  const teamAvg = Math.round(members.reduce((s, m) => s + m.score, 0) / members.length);
-  const flagged = members.filter(m => m.score < 60);
+  const [loading, setLoading] = useState(true);
+  const [projectTitle, setProjectTitle] = useState('Project');
+  const [members, setMembers] = useState<FairnessMember[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [githubMeta, setGithubMeta] = useState<{
+    linked: boolean;
+    commitsSynced: number;
+    usedContributorStatsApi: boolean;
+  } | null>(null);
+  const [membersMissingGithub, setMembersMissingGithub] = useState<{ userId: string; name: string }[]>([]);
+
+  const teamAvg = useMemo(() => {
+    if (members.length === 0) return 0;
+    return Math.round(members.reduce((s, m) => s + m.score, 0) / members.length);
+  }, [members]);
+
+  const flagged = useMemo(() => members.filter((m) => m.score < 60), [members]);
+
+  const showGitHubSyncHint = useMemo(() => {
+    if (!githubMeta?.linked) return false;
+    return githubMeta.commitsSynced === 0;
+  }, [githubMeta]);
+
+  const showGitHubProfileHint = useMemo(() => {
+    if (!githubMeta?.linked || githubMeta.commitsSynced === 0) return false;
+    if (githubMeta.usedContributorStatsApi) return false;
+    if (members.length === 0) return false;
+    return members.every((m) => m.metrics.gitCommits === 0);
+  }, [githubMeta, members]);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res = await fetch(`${API}/fairness/${id}`);
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.message || 'Failed to load fairness analytics');
+        }
+        if (cancelled) return;
+        setMembers(data.members || []);
+        setProjectTitle(data.project?.title || 'Project');
+        setMembersMissingGithub(Array.isArray(data.membersMissingGithub) ? data.membersMissingGithub : []);
+        setGithubMeta(data.github ? {
+          linked: Boolean(data.github.linked),
+          commitsSynced: data.github.commitsSynced ?? 0,
+          usedContributorStatsApi: Boolean(data.github.usedContributorStatsApi)
+        } : null);
+      } catch (e: any) {
+        if (cancelled) return;
+        setError(e.message || 'Failed to load fairness analytics');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [id]);
 
   return (
     <div className="animate-fade-up space-y-8">
@@ -63,10 +137,12 @@ export default function FairnessAnalytics() {
             <span className={`badge ${isLecturer ? 'badge-amber' : 'badge-sage'}`}>
               {isLecturer ? 'Lecturer View' : 'Student Portal'}
             </span>
-            <span className="text-slate-400 text-sm font-medium">SE3040 · Group 07</span>
+            <span className="text-slate-400 text-sm font-medium">{projectTitle}</span>
           </div>
           <h1 className="page-title">Contribution Fairness</h1>
-          <p className="page-subtitle">AI-assisted analysis of equitable workload distribution within the group.</p>
+          <p className="page-subtitle">
+            Data-driven analysis using task completion, synced GitHub activity, and weekly reporting consistency.
+          </p>
         </div>
         <div className="hidden sm:flex items-center gap-3">
           <div className="card p-4 text-center min-w-[100px]">
@@ -80,7 +156,43 @@ export default function FairnessAnalytics() {
         </div>
       </div>
 
+      {!loading && showGitHubSyncHint && (
+        <div className="card p-4 border-amber-200 bg-amber-50/60 text-sm font-semibold text-amber-900">
+          GitHub is linked but no commits are stored yet. Open <strong>GitHub Sync</strong> for this project and run <strong>Sync Now</strong> so fairness can use commit data.
+        </div>
+      )}
+
+      {!loading && showGitHubProfileHint && (
+        <div className="card p-4 border-slate-200 bg-slate-50 text-sm text-slate-700">
+          <span className="font-bold text-slate-800">Git commit scores are empty.</span>{' '}
+          Ensure each student’s Verity profile has their <strong>GitHub profile URL</strong> (e.g. <code className="text-xs bg-white px-1 rounded border">https://github.com/alexsmith</code>) so commits map to the right person.
+          For best accuracy, set <strong>GITHUB_TOKEN</strong> on the server so GitHub contributor stats can be used.
+        </div>
+      )}
+
+      {loading && (
+        <div className="card p-10 text-center">
+          <Loader2 className="w-6 h-6 animate-spin text-amber-600 mx-auto mb-3" />
+          <p className="text-sm font-semibold text-slate-500">Calculating fairness analytics...</p>
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="card p-6 border-red-200 bg-red-50/50">
+          <p className="text-sm font-semibold text-red-700">{error}</p>
+        </div>
+      )}
+
+      {!loading && !error && members.length === 0 && (
+        <div className="card p-8 text-center">
+          <p className="text-sm font-semibold text-slate-500">
+            No members or activity data found for this project yet.
+          </p>
+        </div>
+      )}
+
       {/* Member Score Cards */}
+      {!loading && !error && members.length > 0 && (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {members.map((m, idx) => {
           const isLow = m.score < 60;
@@ -92,9 +204,16 @@ export default function FairnessAnalytics() {
                   <h4 className="font-bold text-slate-900">{m.name}</h4>
                   <span className={`badge ${m.role === 'Leader' ? 'badge-amber' : 'badge-slate'} mt-1`}>{m.role}</span>
                 </div>
-                <span className={`badge ${isLow ? 'badge-red' : isMid ? 'badge-amber' : 'badge-green'}`}>
-                  {isLow ? 'At Risk' : isMid ? 'Average' : 'Strong'}
-                </span>
+                <div className="flex flex-col items-end gap-1">
+                  <span className={`badge ${isLow ? 'badge-red' : isMid ? 'badge-amber' : 'badge-green'}`}>
+                    {isLow ? 'At Risk' : isMid ? 'Average' : 'Strong'}
+                  </span>
+                  {isLecturer && m.githubProfileLinked === false && (
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-blue-700 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded">
+                      No GitHub URL
+                    </span>
+                  )}
+                </div>
               </div>
 
               <ScoreRing score={m.score} />
@@ -120,13 +239,23 @@ export default function FairnessAnalytics() {
                   );
                 })}
               </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-500 uppercase">
+                <div className="bg-slate-50 rounded-lg border border-slate-100 px-2 py-1.5">
+                  Tasks {m.metrics.doneTasks}/{m.metrics.assignedTasks}
+                </div>
+                <div className="bg-slate-50 rounded-lg border border-slate-100 px-2 py-1.5">
+                  Commits {m.metrics.gitCommits}
+                </div>
+              </div>
             </div>
           );
         })}
       </div>
+      )}
 
       {/* AI Finding Panel (for lecturers) */}
-      {flagged.length > 0 && (
+      {!loading && !error && flagged.length > 0 && (
         <div className="card p-6 border-l-4 border-l-red-500 bg-red-50/50">
           <div className="flex items-start gap-4">
             <div className="p-2.5 bg-red-100 border border-red-200 rounded-xl mt-0.5">

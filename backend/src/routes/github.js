@@ -6,28 +6,117 @@ const axios = require('axios');
 const prisma = new PrismaClient();
 
 const getHeaders = () => {
-    const headers = { 
-        'Accept': 'application/vnd.github.v3+json',
+    const headers = {
+        Accept: 'application/vnd.github.v3+json',
         'User-Agent': 'Verity-Integration-Node'
     };
-    if (process.env.GITHUB_TOKEN) {
-        headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+    const token = process.env.GITHUB_TOKEN;
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
     }
     return headers;
 };
 
-// Extractor helper to get username from "https://github.com/username"
+// Extractor helper to get username from "https://github.com/username" or "https://github.com/user/repo"
 const extractUsername = (githubUrl) => {
     if (!githubUrl) return null;
     try {
-        const url = new URL(githubUrl);
+        const url = new URL(githubUrl.startsWith('http') ? githubUrl : `https://${githubUrl}`);
         const pathSegments = url.pathname.split('/').filter(Boolean);
-        return pathSegments[0] || null; // e.g. /octocat -> octocat
+        return pathSegments[0] || null;
     } catch {
-        // If it's a raw string like "octocat", just return it
         return githubUrl.replace(/^@/, '');
     }
 };
+
+/** Single canonical key: "owner/repo" lowercase — enforces one GitHub repo per Verity project globally */
+function normalizeRepoFullName(owner, repoName) {
+    return `${String(owner).trim()}/${String(repoName).trim()}`.toLowerCase();
+}
+
+function assertProjectId(projectId, res) {
+    if (!projectId || typeof projectId !== 'string' || !projectId.trim()) {
+        res.status(400).json({ success: false, message: 'Invalid project id.' });
+        return false;
+    }
+    return true;
+}
+
+/** Parse owner/repo from full GitHub URL */
+const parseGithubRepoUrl = (raw) => {
+    if (!raw || typeof raw !== 'string') return null;
+    const s = raw.trim();
+    const m = s.match(/github\.com\/([^/]+)\/([^/#?]+)/i);
+    if (!m) return null;
+    return { owner: m[1], repoName: m[2].replace(/\.git$/i, '') };
+};
+
+/** GitHub noreply emails: id+login@users.noreply.github.com or login@users.noreply.github.com */
+const loginFromNoreplyEmail = (email) => {
+    if (!email || typeof email !== 'string') return null;
+    const lower = email.toLowerCase();
+    if (!lower.includes('noreply.github.com')) return null;
+    const plus = lower.match(/^(\d+)\+([^@]+)@users\.noreply\.github\.com$/);
+    if (plus) return plus[2];
+    const plain = lower.match(/^([^@]+)@users\.noreply\.github\.com$/);
+    return plain ? plain[1] : null;
+};
+
+/** GitHub may return 202 while contributor stats are computed — retry a few times */
+async function fetchContributorStats(owner, repoName, headers) {
+    for (let i = 0; i < 6; i++) {
+        const statsRes = await axios.get(
+            `https://api.github.com/repos/${owner}/${repoName}/stats/contributors`,
+            { headers, validateStatus: () => true }
+        );
+        if (statsRes.status === 202) {
+            await new Promise((r) => setTimeout(r, 2500));
+            continue;
+        }
+        if (statsRes.status === 200 && Array.isArray(statsRes.data)) {
+            return statsRes.data;
+        }
+        break;
+    }
+    return [];
+}
+
+/** When /stats/contributors is empty (rate limit, new repo, or no token), derive commit share from synced DB rows */
+function buildImpactsFromDbCommits(dbCommits, userGithubMap, systemUsers) {
+    const groups = new Map();
+    for (const c of dbCommits) {
+        const noreplyLogin = loginFromNoreplyEmail(c.authorEmail);
+        const emailLower = (c.authorEmail || '').toLowerCase();
+        const matchByGithub = noreplyLogin
+            ? userGithubMap.find((u) => u.githubLogin === noreplyLogin)
+            : null;
+        const matchByEmail = emailLower
+            ? systemUsers.find((u) => (u.email || '').toLowerCase() === emailLower)
+            : null;
+        const matched = matchByGithub || matchByEmail;
+        const key = noreplyLogin || emailLower || (c.authorName || '').toLowerCase() || 'unknown';
+
+        if (!groups.has(key)) {
+            groups.set(key, {
+                login: noreplyLogin || key.slice(0, 40),
+                name: matched ? matched.name : c.authorName || noreplyLogin || key.slice(0, 40),
+                isMatched: !!matched,
+                commits: 0,
+                additions: 0,
+                deletions: 0
+            });
+        }
+        groups.get(key).commits += 1;
+    }
+    const list = Array.from(groups.values());
+    const totalCommits = list.reduce((s, g) => s + g.commits, 0);
+    return list
+        .map((imp) => ({
+            ...imp,
+            percentage: totalCommits > 0 ? Math.round((imp.commits / totalCommits) * 100) : 0
+        }))
+        .sort((a, b) => b.commits - a.commits);
+}
 
 // POST /api/github/link
 router.post('/link', async (req, res) => {
@@ -35,14 +124,24 @@ router.post('/link', async (req, res) => {
         console.log("POST /api/github/link Body:", req.body);
         let { projectId, owner, repoName, url } = req.body;
 
-        // Trim 
         projectId = projectId?.trim();
         owner = owner?.trim();
         repoName = repoName?.trim();
         url = url?.trim();
 
+        if ((!owner || !repoName) && url) {
+            const parsed = parseGithubRepoUrl(url);
+            if (parsed) {
+                owner = owner || parsed.owner;
+                repoName = repoName || parsed.repoName;
+            }
+        }
+
         if (!projectId || !owner || !repoName) {
-            return res.status(400).json({ success: false, message: 'projectId, owner, and repoName are required (ensure they are not empty spaces)' });
+            return res.status(400).json({
+                success: false,
+                message: 'projectId, owner, and repoName are required (or paste a full https://github.com/owner/repo URL).'
+            });
         }
 
         try {
@@ -52,12 +151,27 @@ router.post('/link', async (req, res) => {
             return res.status(404).json({ success: false, message: `Repository not found or API Limit Reached: ${e.message}` });
         }
 
-        const existing = await prisma.githubRepo.findFirst({ where: { projectId } });
+        const repoFullName = normalizeRepoFullName(owner, repoName);
+        const canonicalUrl = url || `https://github.com/${owner}/${repoName}`;
+
+        const taken = await prisma.githubRepo.findUnique({ where: { repoFullName } });
+        if (taken && taken.projectId !== projectId) {
+            const otherProject = await prisma.project.findUnique({
+                where: { id: taken.projectId },
+                select: { title: true }
+            });
+            return res.status(409).json({
+                success: false,
+                message: `This GitHub repository is already linked to another project (${otherProject?.title || 'another group'}). Each repo can only be connected to one Verity project.`
+            });
+        }
+
+        const existing = await prisma.githubRepo.findUnique({ where: { projectId } });
         let repo;
         if (existing) {
             repo = await prisma.githubRepo.update({
                 where: { id: existing.id },
-                data: { owner, repoName, url: url || `https://github.com/${owner}/${repoName}` }
+                data: { owner, repoName, url: canonicalUrl, repoFullName }
             });
         } else {
             repo = await prisma.githubRepo.create({
@@ -65,14 +179,21 @@ router.post('/link', async (req, res) => {
                     projectId,
                     owner,
                     repoName,
-                    url: url || `https://github.com/${owner}/${repoName}`
+                    url: canonicalUrl,
+                    repoFullName
                 }
             });
         }
 
         res.status(200).json({ success: true, repo });
     } catch (error) {
-        console.error("Github Link Error:", error);
+        console.error('Github Link Error:', error);
+        if (error.code === 'P2002') {
+            return res.status(409).json({
+                success: false,
+                message: 'This GitHub repository is already linked to another project.'
+            });
+        }
         res.status(500).json({ success: false, message: 'Server error linking repo', error: error.message });
     }
 });
@@ -81,7 +202,9 @@ router.post('/link', async (req, res) => {
 router.post('/sync/:projectId', async (req, res) => {
     try {
         const { projectId } = req.params;
-        const repo = await prisma.githubRepo.findFirst({ where: { projectId } });
+        if (!assertProjectId(projectId, res)) return;
+
+        const repo = await prisma.githubRepo.findUnique({ where: { projectId } });
 
         if (!repo) {
             return res.status(404).json({ success: false, message: 'No GitHub repository linked to this project' });
@@ -93,7 +216,10 @@ router.post('/sync/:projectId', async (req, res) => {
         // 1. Fetch Branches
         let branches = [];
         try {
-            const branchRes = await axios.get(`https://api.github.com/repos/${owner}/${repoName}/branches`, { headers });
+            const branchRes = await axios.get(`https://api.github.com/repos/${owner}/${repoName}/branches`, {
+                headers,
+                params: { per_page: 100 }
+            });
             branches = branchRes.data.map(b => b.name);
         } catch (e) {
             console.error("Failed to fetch branches:", e.message);
@@ -101,7 +227,8 @@ router.post('/sync/:projectId', async (req, res) => {
 
         // 2. Fetch Commits from all branches
         const uniqueCommits = new Map();
-        let targetBranches = branches.length > 0 ? branches : ['main'];
+        let targetBranches = branches.length > 0 ? branches : ['main', 'master'];
+        targetBranches = [...new Set(targetBranches)];
         
         for (const branch of targetBranches) {
             try {
@@ -126,14 +253,29 @@ router.post('/sync/:projectId', async (req, res) => {
         }
 
         // 3. Save unique commits to Database
-        let additionsCount = 0;
+        let newCommits = 0;
         const commitsArray = Array.from(uniqueCommits.values());
         for (const c of commitsArray) {
             try {
-                await prisma.githubCommit.upsert({
-                    where: { commitHash: c.hash },
-                    update: {},
-                    create: {
+                const existing = await prisma.githubCommit.findUnique({
+                    where: { commitHash: c.hash }
+                });
+                if (existing) {
+                    if (existing.githubRepoId === githubRepoId) {
+                        await prisma.githubCommit.update({
+                            where: { commitHash: c.hash },
+                            data: {
+                                authorName: c.authorName,
+                                authorEmail: c.authorEmail,
+                                message: c.message,
+                                date: c.date
+                            }
+                        });
+                    }
+                    continue;
+                }
+                await prisma.githubCommit.create({
+                    data: {
                         githubRepoId,
                         commitHash: c.hash,
                         authorName: c.authorName,
@@ -142,9 +284,9 @@ router.post('/sync/:projectId', async (req, res) => {
                         date: c.date
                     }
                 });
-                additionsCount++;
+                newCommits++;
             } catch (err) {
-                // Ignore unique constraint collisions if they happen concurrently
+                console.error('Commit save error:', err.message);
             }
         }
 
@@ -152,11 +294,12 @@ router.post('/sync/:projectId', async (req, res) => {
         // because we can fetch it live in GET /repo for total accuracy, but caching is better.
         // Actually, for simplicity and perfect accuracy, let's keep GET /repo doing the calculation.
 
-        res.status(200).json({ 
-            success: true, 
-            message: 'Synced successfully', 
-            syncedCommits: additionsCount,
-            branchesFetched: targetBranches.length 
+        res.status(200).json({
+            success: true,
+            message: 'Synced successfully',
+            syncedCommits: commitsArray.length,
+            newCommits,
+            branchesFetched: targetBranches.length
         });
 
     } catch (error) {
@@ -169,17 +312,22 @@ router.post('/sync/:projectId', async (req, res) => {
 router.get('/repo/:projectId', async (req, res) => {
     try {
         const { projectId } = req.params;
-        const repo = await prisma.githubRepo.findFirst({ where: { projectId } });
+        if (!assertProjectId(projectId, res)) return;
+
+        const repo = await prisma.githubRepo.findUnique({ where: { projectId } });
 
         if (!repo) {
             return res.status(200).json({ success: true, linked: false });
         }
 
-        // 1. Get recent commits from DB
+        // 1. Get recent commits from DB (+ all for fallback analytics)
         const recentCommits = await prisma.githubCommit.findMany({
             where: { githubRepoId: repo.id },
             orderBy: { date: 'desc' },
             take: 50
+        });
+        const allRepoCommits = await prisma.githubCommit.findMany({
+            where: { githubRepoId: repo.id }
         });
 
         // 2. Fetch Project Members and extract their expected GitHub aliases
@@ -201,66 +349,59 @@ router.get('/repo/:projectId', async (req, res) => {
             };
         });
 
-        // 3. Fetch Advanced Stats directly from GitHub for 100% accuracy on LOC
+        // 3. Fetch contributor stats from GitHub (LOC + commit totals) when possible
         let githubStats = [];
         try {
             const headers = getHeaders();
-            let statsRes = await axios.get(`https://api.github.com/repos/${repo.owner}/${repo.repoName}/stats/contributors`, { headers });
-            
-            // Handle 202 Accepted calculation delay
-            if (statsRes.status === 202) {
-                await new Promise(r => setTimeout(r, 2000));
-                statsRes = await axios.get(`https://api.github.com/repos/${repo.owner}/${repo.repoName}/stats/contributors`, { headers });
-            }
-            if (Array.isArray(statsRes.data)) {
-                githubStats = statsRes.data;
-            }
+            githubStats = await fetchContributorStats(repo.owner, repo.repoName, headers);
         } catch (e) {
-            console.error("Failed to fetch advanced contributor stats:", e.message);
+            console.error('Failed to fetch advanced contributor stats:', e.message);
         }
 
-        // 4. Calculate Impacts dynamically matching githubLogin to our Users
+        // 4. Build impacts: prefer GitHub stats API; fall back to synced commits in DB
         let totalAdditions = 0;
         let totalDeletions = 0;
         let totalCommits = 0;
+        let finalImpacts = [];
 
-        const impacts = githubStats.map(stat => {
-            const login = stat.author?.login || '';
-            let userAdditions = 0;
-            let userDeletions = 0;
-            let userCommits = stat.total; // pre-calculated total commits
+        if (githubStats.length > 0) {
+            const impacts = githubStats.map((stat) => {
+                const login = stat.author?.login || '';
+                let userAdditions = 0;
+                let userDeletions = 0;
+                const userCommits = stat.total;
 
-            // Sum up weekly additions/deletions
-            stat.weeks.forEach(week => {
-                userAdditions += week.a;
-                userDeletions += week.d;
+                stat.weeks.forEach((week) => {
+                    userAdditions += week.a;
+                    userDeletions += week.d;
+                });
+
+                totalAdditions += userAdditions;
+                totalDeletions += userDeletions;
+                totalCommits += userCommits;
+
+                const matchedUser = userGithubMap.find((u) => u.githubLogin === login.toLowerCase());
+
+                return {
+                    login,
+                    name: matchedUser ? matchedUser.name : login,
+                    isMatched: !!matchedUser,
+                    commits: userCommits,
+                    additions: userAdditions,
+                    deletions: userDeletions
+                };
             });
 
-            totalAdditions += userAdditions;
-            totalDeletions += userDeletions;
-            totalCommits += userCommits;
-
-            // Find matching Verity Student
-            const matchedUser = userGithubMap.find(u => u.githubLogin === login.toLowerCase());
-
-            return {
-                login,
-                name: matchedUser ? matchedUser.name : login,
-                isMatched: !!matchedUser,
-                commits: userCommits,
-                additions: userAdditions,
-                deletions: userDeletions
-            };
-        });
-
-        // Calculate dynamic percentages and colors
-        const finalImpacts = impacts.map(imp => {
-            const percentage = totalCommits > 0 ? Math.round((imp.commits / totalCommits) * 100) : 0;
-            return {
-                ...imp,
-                percentage
-            };
-        }).sort((a, b) => b.commits - a.commits);
+            finalImpacts = impacts
+                .map((imp) => ({
+                    ...imp,
+                    percentage: totalCommits > 0 ? Math.round((imp.commits / totalCommits) * 100) : 0
+                }))
+                .sort((a, b) => b.commits - a.commits);
+        } else if (allRepoCommits.length > 0) {
+            finalImpacts = buildImpactsFromDbCommits(allRepoCommits, userGithubMap, systemUsers);
+            totalCommits = allRepoCommits.length;
+        }
 
         // 5. Enhance Commits with branch info and match them to students
         const enhancedCommits = recentCommits.map(commit => {

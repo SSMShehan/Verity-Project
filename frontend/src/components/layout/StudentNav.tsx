@@ -19,6 +19,12 @@ export default function StudentNav() {
   })();
   const initials = user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'ST';
 
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
+
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
       {/* University Strip - Professional Blue for Student */}
@@ -39,7 +45,7 @@ export default function StudentNav() {
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-800 to-emerald-700 flex items-center justify-center shadow-md border border-emerald-900">
             <span className="text-white font-black text-sm drop-shadow-sm">V</span>
           </div>
-          <span className="text-emerald-900 font-black text-xl tracking-tight">Verity<span className="text-emerald-500">Sync</span></span>
+          <span className="text-emerald-900 font-black text-xl tracking-tight">Verity<span className="text-emerald-50">Sync</span></span>
         </Link>
 
         {/* Action-Oriented Nav Sections */}
@@ -80,11 +86,15 @@ export default function StudentNav() {
               {initials}
             </div>
           </Link>
-          <Link to="/login" className="text-xs font-bold text-slate-400 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors border border-transparent hover:border-red-100 ml-2">
+          <button 
+            onClick={handleSignOut}
+            className="text-xs font-bold text-slate-400 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors border border-transparent hover:border-red-100 ml-2"
+          >
             Sign out
-          </Link>
+          </button>
         </div>
       </div>
     </header>
+
   );
 }

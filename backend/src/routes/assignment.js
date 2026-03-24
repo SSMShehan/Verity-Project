@@ -8,11 +8,91 @@ const { extractTextFromUrl } = require('../services/pdfExtractor');
 const { detectAIContent } = require('../services/aiDetector');
 const { checkPlagiarism } = require('../services/plagiarismChecker');
 
-// Helper to determine risk category
+// Helper to determine risk category (null AI score is ignored; plagiarism still applies)
 function getRiskCategory(aiScore, plagiarismScore) {
-    if (aiScore > 80 || plagiarismScore > 80) return 'High';
-    if (aiScore > 50 || plagiarismScore > 50) return 'Medium';
+    const ai = aiScore != null ? Number(aiScore) : 0;
+    const pl = plagiarismScore != null ? Number(plagiarismScore) : 0;
+    if (ai > 80 || pl > 80) return 'High';
+    if (ai > 50 || pl > 50) return 'Medium';
     return 'Low';
+}
+
+function scheduleSubmissionAnalysis(submissionId, assignmentId, fileName, filePath) {
+    process.nextTick(async () => {
+        try {
+            if (!fileName.toLowerCase().endsWith('.pdf')) {
+                await prisma.assignmentSubmission.update({
+                    where: { id: submissionId },
+                    data: {
+                        checkStatus: 'Skipped',
+                        extractedText: null,
+                        aiScore: null,
+                        plagiarismScore: null,
+                        riskCategory: null,
+                        checkedAt: null
+                    }
+                });
+                return;
+            }
+
+            await prisma.assignmentSubmission.update({
+                where: { id: submissionId },
+                data: { checkStatus: 'Processing' }
+            });
+
+            const text = await extractTextFromUrl(filePath);
+            const { aiScore } = await detectAIContent(text);
+
+            const existingSubmissions = await prisma.assignmentSubmission.findMany({
+                where: {
+                    assignmentId,
+                    id: { not: submissionId },
+                    extractedText: { not: null }
+                },
+                select: { id: true, extractedText: true }
+            });
+
+            const { plagiarismScore, matches } = checkPlagiarism(text, existingSubmissions);
+            const riskCategory = getRiskCategory(aiScore, plagiarismScore);
+
+            await prisma.assignmentSubmission.update({
+                where: { id: submissionId },
+                data: {
+                    extractedText: text,
+                    aiScore,
+                    plagiarismScore,
+                    riskCategory,
+                    checkStatus: 'Completed',
+                    checkedAt: new Date()
+                }
+            });
+
+            if (matches && matches.length > 0) {
+                for (const match of matches) {
+                    await prisma.plagiarismMatch.create({
+                        data: {
+                            assignmentId,
+                            submissionAId: submissionId,
+                            submissionBId: match.submissionId,
+                            similarityScore: match.score
+                        }
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('--- Submission Check Error ---');
+            console.error(`Submission ID: ${submissionId}`);
+            console.error(`Assignment ID: ${assignmentId}`);
+            console.error(`File: ${fileName}`);
+            console.error('Error Details:', error.stack || error.message);
+            console.error('------------------------------');
+
+            await prisma.assignmentSubmission.update({
+                where: { id: submissionId },
+                data: { checkStatus: 'Failed' }
+            });
+        }
+    });
 }
 
 // POST /api/assignment/create  — Lecturer creates an assignment
@@ -105,6 +185,33 @@ router.get('/lecturer', async (req, res) => {
     }
 });
 
+// GET /api/assignment/:id/results  — Lecturer gets submissions with AI/Plagiarism scores (before /:id)
+router.get('/:id/results', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const submissions = await prisma.assignmentSubmission.findMany({
+            where: { assignmentId: id },
+            include: {
+                student: { select: { id: true, name: true, indexNumber: true } }
+            },
+            orderBy: { submittedAt: 'desc' }
+        });
+
+        const matches = await prisma.plagiarismMatch.findMany({
+            where: { assignmentId: id },
+            include: {
+                submissionA: { include: { student: { select: { name: true } } } },
+                submissionB: { include: { student: { select: { name: true } } } }
+            }
+        });
+
+        res.status(200).json({ success: true, submissions, matches });
+    } catch (error) {
+        console.error("Assignment Results Error:", error);
+        res.status(500).json({ success: false, message: 'Server error fetching results' });
+    }
+});
+
 // GET /api/assignment/:id  — Get single assignment with submissions
 router.get('/:id', async (req, res) => {
     try {
@@ -193,11 +300,29 @@ router.post('/submit', async (req, res) => {
             where: { assignmentId, studentId }
         });
         if (existing) {
-            // Update the existing submission instead
+            await prisma.plagiarismMatch.deleteMany({
+                where: {
+                    OR: [{ submissionAId: existing.id }, { submissionBId: existing.id }]
+                }
+            });
+
             const updated = await prisma.assignmentSubmission.update({
                 where: { id: existing.id },
-                data: { fileName, filePath, late: isLate, submittedAt: new Date() }
+                data: {
+                    fileName,
+                    filePath,
+                    late: isLate,
+                    submittedAt: new Date(),
+                    checkStatus: 'Pending',
+                    extractedText: null,
+                    aiScore: null,
+                    plagiarismScore: null,
+                    riskCategory: null,
+                    checkedAt: null
+                }
             });
+
+            scheduleSubmissionAnalysis(updated.id, assignmentId, fileName, filePath);
             return res.status(200).json({ success: true, submission: updated, replaced: true });
         }
 
@@ -212,109 +337,12 @@ router.post('/submit', async (req, res) => {
             }
         });
 
-        // Trigger AI/Plagiarism check asynchronously
-        process.nextTick(async () => {
-            try {
-                // 1. Only check PDFs
-                if (!fileName.toLowerCase().endsWith('.pdf')) {
-                    await prisma.assignmentSubmission.update({
-                        where: { id: submission.id },
-                        data: { checkStatus: 'Skipped' }
-                    });
-                    return;
-                }
-
-                await prisma.assignmentSubmission.update({
-                    where: { id: submission.id },
-                    data: { checkStatus: 'Processing' }
-                });
-
-                // 2. Extract Text
-                const text = await extractTextFromUrl(filePath);
-                
-                // 3. AI Detection
-                const { aiScore } = await detectAIContent(text);
-
-                // 4. Plagiarism Check (Cross-submission)
-                const existingSubmissions = await prisma.assignmentSubmission.findMany({
-                    where: { 
-                        assignmentId,
-                        id: { not: submission.id },
-                        extractedText: { not: null }
-                    },
-                    select: { id: true, extractedText: true }
-                });
-
-                const { plagiarismScore, matches } = checkPlagiarism(text, existingSubmissions);
-
-                // 5. Store Results
-                const riskCategory = getRiskCategory(aiScore, plagiarismScore);
-
-                await prisma.assignmentSubmission.update({
-                    where: { id: submission.id },
-                    data: {
-                        extractedText: text,
-                        aiScore,
-                        plagiarismScore,
-                        riskCategory,
-                        checkStatus: 'Completed',
-                        checkedAt: new Date()
-                    }
-                });
-
-                // 6. Store Matches
-                if (matches && matches.length > 0) {
-                    for (const match of matches) {
-                        await prisma.plagiarismMatch.create({
-                            data: {
-                                assignmentId,
-                                submissionAId: submission.id,
-                                submissionBId: match.submissionId,
-                                similarityScore: match.score
-                            }
-                        });
-                    }
-                }
-            } catch (error) {
-                console.error('Submission Check Error:', error);
-                await prisma.assignmentSubmission.update({
-                    where: { id: submission.id },
-                    data: { checkStatus: 'Failed' }
-                });
-            }
-        });
+        scheduleSubmissionAnalysis(submission.id, assignmentId, fileName, filePath);
 
         res.status(201).json({ success: true, submission });
     } catch (error) {
         console.error("Assignment Submit Error:", error);
         res.status(500).json({ success: false, message: 'Server error submitting assignment', error: error.message });
-    }
-});
-
-// GET /api/assignment/:id/results  — Lecturer gets submissions with AI/Plagiarism scores
-router.get('/:id/results', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const submissions = await prisma.assignmentSubmission.findMany({
-            where: { assignmentId: id },
-            include: {
-                student: { select: { id: true, name: true, indexNumber: true } }
-            },
-            orderBy: { submittedAt: 'desc' }
-        });
-
-        const matches = await prisma.plagiarismMatch.findMany({
-            where: { assignmentId: id },
-            include: {
-                submissionA: { include: { student: { select: { name: true } } } },
-                submissionB: { include: { student: { select: { name: true } } } }
-            }
-        });
-
-        res.status(200).json({ success: true, submissions, matches });
-    } catch (error) {
-        console.error("Assignment Results Error:", error);
-        res.status(500).json({ success: false, message: 'Server error fetching results' });
     }
 });
 

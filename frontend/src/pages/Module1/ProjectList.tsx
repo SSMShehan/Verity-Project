@@ -1,18 +1,18 @@
 import { Link } from 'react-router-dom';
-import { Clock, Plus, ExternalLink, Lock } from 'lucide-react';
+import { Clock, Plus, ExternalLink, Lock, Search } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function ProjectList() {
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchProjects = async () => {
       try {
         const response = await axios.get('http://localhost:5000/api/project/list');
         if (response.data.success) {
-          // Map backend project schema to frontend props
           const mappedProjects = response.data.projects.map((p: any) => {
             const moduleMatch = p.description?.match(/^\[(.*?)\]/);
             const moduleName = moduleMatch ? moduleMatch[1] : 'IT3022 - Software Engineering';
@@ -38,27 +38,44 @@ export default function ProjectList() {
     fetchProjects();
   }, []);
 
+  const filteredProjects = projects.filter(p => 
+    p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    p.module.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   if (loading) {
     return <div className="text-center py-20 animate-pulse text-emerald-600 font-bold">Loading Projects...</div>;
   }
 
   return (
-    <div className="animate-fade-up max-w-7xl mx-auto space-y-28 pb-12">
+    <div className="animate-fade-up max-w-7xl mx-auto space-y-12 pb-12">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8 page-header border-none mb-0 pb-0">
         <div>
           <h1 className="page-title text-emerald-900">Your Projects</h1>
           <p className="page-subtitle text-slate-500">Manage your active workspaces and monitor pending group registrations.</p>
         </div>
-        <Link
-          to="/student/projects/new"
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold shadow-xl shadow-emerald-600/20 transition-all flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" /> Request New Group
-        </Link>
-      </div><br></br><br></br>
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+          <div className="relative w-full sm:w-72">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+            <input 
+              type="text"
+              placeholder="Search projects..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-bold text-slate-700"
+            />
+          </div>
+          <Link
+            to="/student/projects/new"
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold shadow-xl shadow-emerald-600/20 transition-all flex items-center gap-2 w-full sm:w-auto justify-center"
+          >
+            <Plus className="w-5 h-5" /> Request New Group
+          </Link>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-        {projects.map(proj => {
+        {filteredProjects.map(proj => {
           const isPending = proj.status === 'Pending' || proj.status === 'Pending Approval';
 
           return (
@@ -121,13 +138,17 @@ export default function ProjectList() {
                 </div>
               </div>
 
-              {/* Cover block for pending links to prevent clicking into workspace */}
               {!isPending && (
                 <Link to={`/student/projects/${proj.id}`} className="absolute inset-0 z-10" aria-label={`View ${proj.title}`} />
               )}
             </div>
           );
         })}
+        {filteredProjects.length === 0 && (
+          <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 font-bold">
+            No projects found matching your search.
+          </div>
+        )}
       </div>
     </div>
   );

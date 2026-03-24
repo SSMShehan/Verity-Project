@@ -46,9 +46,15 @@ export default function LecturerNav() {
   })();
   const initials = user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'LR';
 
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
+
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
-      {/* University Strip - distinct amber for lecturer */}
+      {/* University Strip - distinct indigo for lecturer */}
       <div className="bg-indigo-900 text-white px-6 py-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <span className="text-xs font-semibold tracking-wider uppercase opacity-90 hidden sm:inline-block">
           Sri Lanka Institute of Information Technology · Academic Portal
@@ -122,11 +128,15 @@ export default function LecturerNav() {
               {initials}
             </div>
           </Link>
-          <Link to="/login" className="text-xs font-bold text-slate-400 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors border border-transparent hover:border-red-100 ml-2">
+          <button 
+            onClick={handleSignOut}
+            className="text-xs font-bold text-slate-400 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors border border-transparent hover:border-red-100 ml-2"
+          >
             Sign out
-          </Link>
+          </button>
         </div>
       </div>
     </header>
+
   );
 }

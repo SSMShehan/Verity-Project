@@ -64,7 +64,7 @@ function computeSimilarity(text1, text2) {
     const intersection = new Set([...tokens1].filter(x => tokens2.has(x)));
     const union = new Set([...tokens1, ...tokens2]);
 
-    if (union.size === 0) return 0;
+    if (union.size === 0 || tokens1.size === 0 || tokens2.size === 0) return 0;
     return intersection.size / Math.sqrt(tokens1.size * tokens2.size); // Cosine-like similarity
 }
 

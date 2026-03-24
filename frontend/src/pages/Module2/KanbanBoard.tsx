@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { Search, Plus } from 'lucide-react';
 import axios from 'axios';
 
 export default function KanbanBoard() {
@@ -7,6 +8,7 @@ export default function KanbanBoard() {
   const [tasks, setTasks] = useState<any[]>([]);
   const columns = ['To Do', 'In Progress', 'Review', 'Done'];
   const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchTasks = async () => {
     try {
@@ -25,28 +27,42 @@ export default function KanbanBoard() {
   }, [id]);
 
   const moveTask = async (task: any, newStatus: string) => {
-    // Optimistic UI update
     setTasks(tasks.map(t => t.id === task.id ? { ...t, status: newStatus } : t));
-    
-    // Server sync
     try {
       await axios.put(`http://localhost:5000/api/task/${task.id}/status`, { status: newStatus });
     } catch (e) {
       console.error("Error updating status", e);
-      fetchTasks(); // rollback on error
+      fetchTasks();
     }
   };
 
+  const filteredTasks = tasks.filter(t => 
+    t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
   return (
-    <div className="h-full flex flex-col pt-2">
-      <div className="flex justify-between items-center bg-white p-6 rounded-3xl shadow-sm border border-slate-100 mb-6 flex-shrink-0">
+    <div className="h-full flex flex-col pt-2 animate-fade-up">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-3xl shadow-sm border border-slate-100 mb-6 flex-shrink-0 gap-6">
         <div>
           <h2 className="text-3xl font-black text-slate-800 tracking-tight">Kanban Workflow</h2>
           <p className="text-slate-500 font-medium text-sm mt-1">Manage task executions interactively.</p>
         </div>
-        <Link to={`/student/projects/${id}/tasks/new`} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2">
-          <span className="text-xl leading-none">+</span> New Task
-        </Link>
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="relative flex-1 md:w-64">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+            <input 
+              type="text"
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-bold text-slate-700 shadow-sm"
+            />
+          </div>
+          <Link to={`/student/projects/${id}/tasks/new`} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2 shrink-0">
+            <Plus className="w-5 h-5" /> New Task
+          </Link>
+        </div>
       </div>
 
       <div className="flex-1 flex gap-6 overflow-x-auto pb-6 scrollbar-hide">
@@ -55,12 +71,12 @@ export default function KanbanBoard() {
             <h3 className="font-black text-slate-800 mb-5 px-2 uppercase tracking-wider text-sm flex justify-between items-center">
               {col}
               <span className="bg-slate-200/80 text-slate-500 px-2.5 py-1 rounded-md text-xs border border-slate-300/50 shadow-sm">
-                {tasks.filter(t => t.status === col).length}
+                {filteredTasks.filter(t => t.status === col).length}
               </span>
             </h3>
 
-            <div className="flex-1 space-y-4 overflow-y-auto min-h-[200px]">
-              {tasks.filter(t => t.status === col).map(task => (
+            <div className="flex-1 space-y-4 overflow-y-auto min-h-[200px] pr-1">
+              {filteredTasks.filter(t => t.status === col).map(task => (
                 <div 
                   key={task.id} 
                   className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 hover:shadow-xl hover:border-emerald-400 hover:-translate-y-1 transition-all duration-300 cursor-pointer group"
@@ -90,9 +106,9 @@ export default function KanbanBoard() {
             <h3 className="text-2xl font-black mb-1">{selectedTask.title}</h3>
             <p className="text-sm font-bold text-slate-500 mb-6 border-b border-slate-100 pb-4">Assigned to: {selectedTask.assignee}</p>
 
-            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Move to Status</label>
+            <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Move to Status</label>
             <select 
-              className="w-full p-4 border border-slate-200 bg-slate-50 rounded-xl mb-6 font-black text-slate-800 outline-none focus:ring-4 focus:ring-emerald-500/10"
+              className="w-full p-4 border border-slate-200 bg-slate-50 rounded-xl mb-6 font-black text-slate-800 outline-none focus:ring-4 focus:ring-emerald-500/10 appearance-none cursor-pointer"
               value={selectedTask.status}
               onChange={(e) => {
                 moveTask(selectedTask, e.target.value);
@@ -102,17 +118,12 @@ export default function KanbanBoard() {
               {columns.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             
-            <h4 className="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-3">Status History View</h4>
-            <div className="space-y-3">
-              <div className="flex gap-4 items-center">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></div>
-                <div className="flex-1 text-sm bg-slate-50 p-3 rounded-xl border border-slate-100">
-                  <span className="font-bold text-slate-700">Created Task</span> <br/><span className="text-xs font-bold text-slate-400">Oct 12, 10:00 AM</span>
-                </div>
-              </div>
+            <h4 className="text-[10px] uppercase tracking-widest font-black text-slate-400 mb-3 ml-1">Task Details</h4>
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-sm text-slate-600 mb-6">
+               {selectedTask.description || 'No description provided.'}
             </div>
 
-            <button onClick={() => setSelectedTask(null)} className="w-full mt-8 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3.5 rounded-xl transition-colors">
+            <button onClick={() => setSelectedTask(null)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3.5 rounded-xl transition-colors">
               Close Details
             </button>
           </div>

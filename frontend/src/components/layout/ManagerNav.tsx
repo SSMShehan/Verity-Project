@@ -20,6 +20,12 @@ export default function ManagerNav() {
   })();
   const initials = user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'MG';
 
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  };
+
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
       {/* University Strip - Crimson for Manager */}
@@ -77,9 +83,12 @@ export default function ManagerNav() {
               {initials}
             </div>
           </div>
-          <Link to="/login" className="text-xs font-bold text-slate-400 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors border border-transparent hover:border-red-100 ml-2">
+          <button 
+            onClick={handleSignOut}
+            className="text-xs font-bold text-slate-400 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors border border-transparent hover:border-red-100 ml-2"
+          >
             Sign out
-          </Link>
+          </button>
         </div>
       </div>
     </header>

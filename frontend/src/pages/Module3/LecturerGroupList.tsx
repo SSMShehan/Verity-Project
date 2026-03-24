@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Users, AlertTriangle, ShieldCheck, Clock } from 'lucide-react';
+import { Users, AlertTriangle, ShieldCheck, Clock, Search } from 'lucide-react';
 import { useModule } from '../../context/ModuleContext';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
@@ -8,6 +8,7 @@ export default function LecturerGroupList() {
   const { selectedModule } = useModule();
   const [allGroups, setAllGroups] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -46,9 +47,15 @@ export default function LecturerGroupList() {
     fetchGroups();
   }, []);
 
-  const groups = selectedModule === 'ALL' 
+  const filteredByModule = selectedModule === 'ALL' 
     ? allGroups 
     : allGroups.filter(g => g.moduleId === selectedModule);
+
+  const groups = filteredByModule.filter(g => 
+    g.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    g.project.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    g.moduleId.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (loading) {
     return <div className="text-center py-20 text-indigo-400 font-bold animate-pulse">Loading groups...</div>;
@@ -57,27 +64,39 @@ export default function LecturerGroupList() {
   return (
     <div className="animate-fade-up space-y-8">
       {/* Page Header */}
-      <div className="page-header border-b-indigo-200">
-        <h1 className="page-title text-indigo-900">My Supervised Groups {selectedModule !== 'ALL' && <span className="text-indigo-600 text-2xl font-black">({selectedModule})</span>}</h1>
-        <p className="page-subtitle text-slate-500">Select a group below to view their specific reports, analytics, and GitHub metrics.</p>
+      <div className="page-header border-b-indigo-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="page-title text-indigo-900">My Supervised Groups {selectedModule !== 'ALL' && <span className="text-indigo-600 text-2xl font-black">({selectedModule})</span>}</h1>
+          <p className="page-subtitle text-slate-500">Select a group below to view their specific reports, analytics, and GitHub metrics.</p>
+        </div>
+        <div className="relative w-full md:w-72">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+          <input 
+            type="text"
+            placeholder="Search groups..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-bold text-slate-700"
+          />
+        </div>
       </div>
 
       {/* Overview Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
         <div className="card p-5 border-amber-100">
-           <div className="text-3xl font-black text-indigo-900">{groups.length}</div>
+           <div className="text-3xl font-black text-indigo-900">{filteredByModule.length}</div>
            <div className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wide">Total Groups</div>
         </div>
         <div className="card p-5 border-emerald-100">
-           <div className="text-3xl font-black text-emerald-600">{groups.filter(g => g.status === 'Healthy').length}</div>
+           <div className="text-3xl font-black text-emerald-600">{filteredByModule.filter(g => g.status === 'Healthy').length}</div>
            <div className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wide">Healthy</div>
         </div>
         <div className="card p-5 border-amber-200 bg-amber-50/50">
-           <div className="text-3xl font-black text-amber-600">{groups.filter(g => g.status === 'At Risk').length}</div>
+           <div className="text-3xl font-black text-amber-600">{filteredByModule.filter(g => g.status === 'At Risk').length}</div>
            <div className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wide">At Risk</div>
         </div>
         <div className="card p-5 border-red-200 bg-red-50/50">
-           <div className="text-3xl font-black text-red-600">{groups.filter(g => g.status === 'Critical').length}</div>
+           <div className="text-3xl font-black text-red-600">{filteredByModule.filter(g => g.status === 'Critical').length}</div>
            <div className="text-xs font-bold text-slate-500 mt-1 uppercase tracking-wide">Critical Attention</div>
         </div>
       </div>
@@ -149,6 +168,11 @@ export default function LecturerGroupList() {
             </Link>
           );
         })}
+        {groups.length === 0 && (
+          <div className="col-span-full py-20 text-center border-2 border-dashed border-slate-200 rounded-3xl text-slate-400 font-bold">
+            No groups found matching your search.
+          </div>
+        )}
       </div>
     </div>
   );
