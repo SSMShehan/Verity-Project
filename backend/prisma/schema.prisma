@@ -221,11 +221,13 @@ model ContributionScore {
 
 model GithubRepo {
   id        String   @id @default(uuid())
-  projectId String
+  projectId String   @unique
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   owner     String
   repoName  String
   url       String
+  /// Normalized "owner/repo" (lowercase) — a GitHub repo can only be linked to one Verity project
+  repoFullName String @unique
 
   commits   GithubCommit[]
 }

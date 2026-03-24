@@ -1,4 +1,4 @@
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Loader2, Github, RefreshCw, GitBranch, X, Plus } from 'lucide-react';
@@ -34,6 +34,9 @@ export default function GithubIntegration() {
         });
       } else {
         setRepoData(null);
+        setCommits([]);
+        setImpacts([]);
+        setStats({ additions: 0, deletions: 0, total: 0 });
       }
     } catch (e) {
       console.error(e);
@@ -47,7 +50,7 @@ export default function GithubIntegration() {
   }, [id]);
 
   const handleSync = async () => {
-    if (!id || !repoData) return;
+    if (!id) return;
     try {
       setSyncing(true);
       const resp = await axios.post(`http://localhost:5000/api/github/sync/${id}`);
@@ -72,7 +75,21 @@ export default function GithubIntegration() {
       });
       if (resp.data.success) {
         setShowLinkModal(false);
-        await handleSync(); // Initial sync
+        setLinkForm({ owner: '', repoName: '', url: '' });
+        setLoading(true);
+        try {
+          setSyncing(true);
+          const syncResp = await axios.post(`http://localhost:5000/api/github/sync/${id}`);
+          if (syncResp.data.success) {
+            alert(`Repository linked. Synced ${syncResp.data.syncedCommits} commits across ${syncResp.data.branchesFetched} branches.`);
+          }
+        } catch (syncErr) {
+          console.error(syncErr);
+          alert('Repository linked, but the first sync failed. Press “Sync Now” after checking GITHUB_TOKEN and rate limits.');
+        } finally {
+          setSyncing(false);
+        }
+        await fetchRepoData();
       }
     } catch (e: any) {
       console.error(e);

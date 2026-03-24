@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import StudentNav from './StudentNav';
+import Footer from '../Footer';
 
 export default function StudentLayout() {
   return (
@@ -8,6 +9,7 @@ export default function StudentLayout() {
       <main className="flex-1 w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Outlet />
       </main>
+      <Footer theme="student" />
     </div>
   );
 }

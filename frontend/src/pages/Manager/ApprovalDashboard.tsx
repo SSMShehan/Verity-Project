@@ -3,6 +3,7 @@ import { ClipboardCheck, Clock, CheckCircle, XCircle, Users, BookOpen, Search } 
 
 export default function ApprovalDashboard() {
   const [requests, setRequests] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     fetchRequests();
@@ -47,7 +48,17 @@ export default function ApprovalDashboard() {
     }
   };
 
-  const pendingCount = requests.filter(r => r.status === 'Pending').length;
+  const filteredRequests = requests.filter(r => 
+    r.groupLeader.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.projectTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.module.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    r.groupLeader.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const pendingRequests = filteredRequests.filter(r => r.status === 'Pending');
+  const actionedRequests = filteredRequests.filter(r => r.status !== 'Pending');
+  
+  const pendingCount = pendingRequests.length;
 
   return (
     <div className="animate-fade-up max-w-6xl mx-auto space-y-8 px-6">
@@ -62,6 +73,8 @@ export default function ApprovalDashboard() {
             <input 
               type="text" 
               placeholder="Search IT number..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-rose-500/20"
             />
           </div>
@@ -76,7 +89,7 @@ export default function ApprovalDashboard() {
              </h2>
           </div>
 
-          {requests.filter(r => r.status === 'Pending').map(req => (
+          {pendingRequests.map(req => (
             <div key={req.id} className="card p-6 border-l-4 border-l-amber-500 flex flex-col md:flex-row gap-6 md:items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
@@ -127,11 +140,11 @@ export default function ApprovalDashboard() {
              </h2>
           </div>
 
-          {requests.filter(r => r.status !== 'Pending').map(req => (
+          {actionedRequests.map(req => (
             <div key={req.id} className="card p-4 border-l-4 border-l-slate-300 flex items-center justify-between opacity-75 grayscale-[0.3]">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className={`badge ${req.status === 'Approved' ? 'badge-green' : 'badge-red'} uppercase tracking-widest text-[10px] font-black`}>{req.status}</span>
+                  <span className={`badge ${req.status === 'Approved' || req.status === 'Active' ? 'badge-green' : 'badge-red'} uppercase tracking-widest text-[10px] font-black`}>{req.status}</span>
                   <span className="text-xs font-bold text-slate-400">{req.id}</span>
                 </div>
                 <h3 className="font-bold text-slate-900">{req.projectTitle} <span className="text-slate-400 font-medium">({req.module})</span></h3>
@@ -155,7 +168,7 @@ export default function ApprovalDashboard() {
                </div>
                <div className="flex justify-between items-center">
                  <span className="text-rose-200/80 text-sm font-semibold">Pending Approvals</span>
-                 <span className="font-black text-amber-300">{pendingCount}</span>
+                 <span className="font-black text-amber-300">{requests.filter(r => r.status === 'Pending').length}</span>
                </div>
              </div>
            </div>

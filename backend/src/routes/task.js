@@ -63,15 +63,46 @@ router.get('/list/:projectId', async (req, res) => {
 router.put('/:taskId/status', async (req, res) => {
     try {
         const { taskId } = req.params;
-        const { status } = req.body;
-        
+        const { status, userId } = req.body;
+
+        const existing = await prisma.task.findUnique({ where: { id: taskId } });
+        if (!existing) {
+            return res.status(404).json({ success: false, message: 'Task not found' });
+        }
+
+        const isDone = String(status).toLowerCase() === 'done';
         const task = await prisma.task.update({
             where: { id: taskId },
-            data: { status }
+            data: {
+                status,
+                completedAt: isDone ? existing.completedAt || new Date() : null
+            }
         });
 
-        // Optionally, log the status change into TaskStatusLog here.
-        
+        const actorId = userId || existing.assigneeId;
+        if (String(existing.status) !== String(status)) {
+            await prisma.taskStatusLog.create({
+                data: {
+                    taskId,
+                    oldStatus: existing.status,
+                    newStatus: status,
+                    changedBy: actorId || 'system'
+                }
+            });
+        }
+        if (actorId) {
+            await prisma.activityLog
+                .create({
+                    data: {
+                        userId: actorId,
+                        projectId: existing.projectId,
+                        type: 'TASK_UPDATE',
+                        details: `task:${taskId}`
+                    }
+                })
+                .catch(() => {});
+        }
+
         res.status(200).json({ success: true, task });
     } catch (error) {
         console.error("Task Status Update Error:", error);

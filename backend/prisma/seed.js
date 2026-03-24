@@ -164,15 +164,7 @@ async function main() {
     },
   });
 
-  // 7. Create a Github Repo link
-  await prisma.githubRepo.create({
-    data: {
-      projectId: project.id,
-      owner: 'VerityDevs',
-      repoName: 'verity-web-platform',
-      url: 'https://github.com/VerityDevs/verity-web-platform',
-    },
-  });
+  // GitHub repo links are created per project from the Code Repo UI (no default link — avoids sharing one repo across multiple projects)
 
   console.log('Seed completed successfully. Users created with password: password123');
 }

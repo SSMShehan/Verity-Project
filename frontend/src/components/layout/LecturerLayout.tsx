@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import LecturerNav from './LecturerNav';
 import { ModuleProvider } from '../../context/ModuleContext';
+import Footer from '../Footer';
 
 export default function LecturerLayout() {
   return (
@@ -10,6 +11,7 @@ export default function LecturerLayout() {
         <main className="flex-1 w-full max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Outlet />
         </main>
+        <Footer theme="lecturer" />
       </div>
     </ModuleProvider>
   );

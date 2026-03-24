@@ -1,9 +1,28 @@
 import { Outlet, Link, useLocation, useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { LayoutDashboard, CheckSquare, Github, Folder, UploadCloud, Settings, Users, FileText } from 'lucide-react';
 
 export default function StudentProjectDashboard() {
   const { id } = useParams();
   const location = useLocation();
+  const [projectTitle, setProjectTitle] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    axios
+      .get('http://localhost:5000/api/project/list')
+      .then((r) => {
+        if (cancelled || !r.data?.success || !Array.isArray(r.data.projects)) return;
+        const p = r.data.projects.find((x: { id: string }) => x.id === id);
+        if (p?.title) setProjectTitle(p.title);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   const tabs = [
     { name: 'Overview', path: `/student/projects/${id}`, icon: LayoutDashboard, exact: true },
@@ -26,7 +45,7 @@ export default function StudentProjectDashboard() {
               <span className="badge bg-emerald-100 text-emerald-900 py-0.5 border-emerald-200">Active Project</span>
               <span className="text-xs font-bold text-slate-400">ID: {id}</span>
             </div>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">Verity Web System</h1>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">{projectTitle || 'Project'}</h1>
           </div>
           <div className="flex items-center gap-3">
              <Link to={`/student/projects/${id}/settings`} className="p-2.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 rounded-xl transition-colors border border-slate-200 bg-white shadow-sm flex items-center gap-2 font-bold text-sm">

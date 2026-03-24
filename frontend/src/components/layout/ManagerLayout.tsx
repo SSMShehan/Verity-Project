@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import ManagerNav from './ManagerNav';
+import Footer from '../Footer';
 
 export default function ManagerLayout() {
   return (
@@ -12,6 +13,7 @@ export default function ManagerLayout() {
       <main className="flex-1 w-full relative z-0 mt-8 mb-12">
         <Outlet />
       </main>
+      <Footer theme="manager" />
     </div>
   );
 }
