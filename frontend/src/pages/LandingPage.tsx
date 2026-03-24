@@ -6,16 +6,16 @@ import ParticleNetwork from '../components/ParticleNetwork';
 
 const LandingPage = () => {
     return (
-        <div className="relative min-h-screen bg-[#F8FAFC] font-sans selection:bg-blue-200 text-slate-900 overflow-hidden">
+        <div className="relative min-h-screen bg-[#F8FAFC] font-sans selection:bg-emerald-200 text-slate-900 overflow-hidden">
 
             {/* Immersive Mesh Gradient Background */}
             <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
                 <ParticleNetwork />
                 {/* Top Right Cyan/Blue Glow */}
-                <div className="absolute top-[-10%] right-[-5%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-b from-cyan-300/40 to-blue-400/20 blur-[120px] mix-blend-multiply opacity-70 animate-pulse-slow object-cover" style={{ animationDuration: '10s' }} />
+                <div className="absolute top-[-10%] right-[-5%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-b from-teal-300/40 to-emerald-400/20 blur-[120px] mix-blend-multiply opacity-70 animate-pulse-slow object-cover" style={{ animationDuration: '10s' }} />
 
                 {/* Center Left Fuchsia Glow */}
-                <div className="absolute top-[20%] left-[-10%] w-[40vw] h-[60vw] rounded-full bg-gradient-to-tr from-fuchsia-300/30 to-purple-400/20 blur-[140px] mix-blend-multiply opacity-60" />
+                <div className="absolute top-[20%] left-[-10%] w-[40vw] h-[60vw] rounded-full bg-gradient-to-tr from-fuchsia-300/30 to-emerald-400/20 blur-[140px] mix-blend-multiply opacity-60" />
 
                 {/* Bottom Center Emerald Glow */}
                 <div className="absolute bottom-[-10%] left-[20%] w-[60vw] h-[40vw] rounded-full bg-gradient-to-t from-emerald-200/40 to-teal-300/20 blur-[120px] mix-blend-multiply opacity-50" />

@@ -1,40 +1,25 @@
 const jwt = require('jsonwebtoken');
-const prisma = require('../config/prisma');
 
-const protect = async (req, res, next) => {
-    let token;
+const authMiddleware = (req, res, next) => {
+    const token = req.header('Authorization')?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Access Denied. No token provided.' });
 
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        try {
-            token = req.headers.authorization.split(' ')[1];
-            const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-
-            req.user = await prisma.user.findUnique({
-                where: { id: decoded.id },
-                select: { id: true, name: true, email: true, role: true }
-            });
-
-            if (!req.user) {
-                return res.status(401).json({ message: 'Not authorized, user not found' });
-            }
-
-            next();
-        } catch (error) {
-            console.error(error);
-            return res.status(401).json({ message: 'Not authorized, token failed' });
-        }
-    } else {
-        return res.status(401).json({ message: 'Not authorized, no token' });
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded; // Contains id, role, etc.
+        next();
+    } catch (err) {
+        res.status(400).json({ message: 'Invalid token.' });
     }
 };
 
-const authorize = (...roles) => {
+const roleMiddleware = (allowedRoles) => {
     return (req, res, next) => {
-        if (!req.user || !roles.includes(req.user.role)) {
-            return res.status(403).json({ message: `User role ${req.user?.role} is not authorized to access this route` });
+        if (!req.user || !allowedRoles.includes(req.user.role)) {
+            return res.status(403).json({ message: 'Forbidden: Insufficient permissions.' });
         }
         next();
     };
 };
 
-module.exports = { protect, authorize };
+module.exports = { authMiddleware, roleMiddleware };

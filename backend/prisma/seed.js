@@ -1,132 +1,187 @@
 const { PrismaClient } = require('@prisma/client');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
+
 const prisma = new PrismaClient();
 
 async function main() {
-    console.log('Start seeding...');
+  console.log('Starting seed...');
 
-    // 1. Create System Admin
-    const adminPassword = await bcrypt.hash('admin123', 10);
-    const admin = await prisma.user.upsert({
-        where: { email: 'admin@verity.edu' },
-        update: {},
-        create: {
-            email: 'admin@verity.edu',
-            name: 'System Administrator',
-            password: adminPassword,
-            role: 'ADMIN',
-        },
-    });
-    console.log(`Created admin user: ${admin.email}`);
+  // Helper to clear existing data to avoid unique constraint errors during iterative seeding
+  await prisma.assignmentSubmission.deleteMany();
+  await prisma.assignment.deleteMany();
+  await prisma.activityLog.deleteMany();
+  await prisma.timeLog.deleteMany();
+  await prisma.taskStatusLog.deleteMany();
+  await prisma.task.deleteMany();
+  await prisma.sprint.deleteMany();
+  await prisma.githubRepo.deleteMany();
+  await prisma.projectMember.deleteMany();
+  await prisma.project.deleteMany();
+  await prisma.module.deleteMany();
+  await prisma.semester.deleteMany();
+  await prisma.year.deleteMany();
+  await prisma.user.deleteMany();
 
-    // 2. Create Years
-    const year1 = await prisma.year.upsert({
-        where: { name: 'Year 1' },
-        update: {},
-        create: { name: 'Year 1' },
-    });
+  // 1. Create Academic Years, Semesters, and Modules
+  const yearsData = [
+    { name: 'Year 1', prefix: '1' },
+    { name: 'Year 2', prefix: '2' },
+    { name: 'Year 3', prefix: '3' },
+    { name: 'Year 4', prefix: '4' },
+  ];
 
-    const year2 = await prisma.year.upsert({
-        where: { name: 'Year 2' },
-        update: {},
-        create: { name: 'Year 2' },
-    });
+  const createdSemesters = [];
+  const createdModules = [];
 
-    const year3 = await prisma.year.upsert({
-        where: { name: 'Year 3' },
-        update: {},
-        create: { name: 'Year 3' },
-    });
+  for (const year of yearsData) {
+    const y = await prisma.year.create({ data: { name: year.name } });
+    
+    // Create Semester 1 and Semester 2 for each year
+    for (let s = 1; s <= 2; s++) {
+      const semester = await prisma.semester.create({
+        data: { name: `Semester ${s}`, yearId: y.id }
+      });
+      createdSemesters.push(semester);
 
-    const year4 = await prisma.year.upsert({
-        where: { name: 'Year 4' },
-        update: {},
-        create: { name: 'Year 4' },
-    });
-
-    // 3. Create Semesters
-    const semestersToCreate = [
-        { name: 'Semester 1', yearId: year1.id },
-        { name: 'Semester 2', yearId: year1.id },
-        { name: 'Semester 1', yearId: year2.id },
-        { name: 'Semester 2', yearId: year2.id },
-        { name: 'Semester 1', yearId: year3.id },
-        { name: 'Semester 2', yearId: year3.id },
-        { name: 'Semester 1', yearId: year4.id },
-        { name: 'Semester 2', yearId: year4.id },
-    ];
-
-    const createdSemesters = {};
-    for (const sem of semestersToCreate) {
-        const created = await prisma.semester.upsert({
-            where: { name_yearId: { name: sem.name, yearId: sem.yearId } },
-            update: {},
-            create: sem,
+      // Create 5 modules per semester
+      for (let m = 1; m <= 5; m++) {
+        const modCode = `IT${year.prefix}0${s}${m}0`; // e.g., IT10110
+        const module = await prisma.module.create({
+          data: {
+            code: modCode,
+            name: `Core Module ${m} - ${year.name} S${s}`,
+            semesterId: semester.id
+          }
         });
-        // Save references for Module creation
-        // We know Year 3 Semester 1 is important
-        if (sem.name === 'Semester 1' && sem.yearId === year3.id) createdSemesters.year3sem1 = created;
-        if (sem.name === 'Semester 2' && sem.yearId === year3.id) createdSemesters.year3sem2 = created;
-        if (sem.name === 'Semester 1' && sem.yearId === year1.id) createdSemesters.year1sem1 = created;
-        if (sem.name === 'Semester 1' && sem.yearId === year2.id) createdSemesters.year2sem1 = created;
+        createdModules.push(module);
+      }
     }
+  }
 
-    const semester1 = createdSemesters.year3sem1;
-    const semester2 = createdSemesters.year3sem2;
+  // Keep references to s1, s2, m1, m2 for relations below
+  const s1 = createdSemesters[0];
+  const s2 = createdSemesters[1];
+  const m1 = createdModules[0];
+  const m2 = createdModules[1];
+  // Generate hash at runtime with bcryptjs for compatibility
+  const hashedPassword = await bcrypt.hash('password123', 10);
 
-    // 4. Create Modules for Semester 1
-    const modules = [
-        // Year 1
-        { code: 'IT1010', name: 'Introduction to Programming', semesterId: createdSemesters.year1sem1.id },
-        { code: 'IT1020', name: 'Mathematics for Computing', semesterId: createdSemesters.year1sem1.id },
-        { code: 'IT1030', name: 'Computer Systems Architecture', semesterId: createdSemesters.year1sem1.id },
+  // 2. Create a Manager
+  const manager = await prisma.user.create({
+    data: {
+      name: 'System Manager',
+      email: 'manager@verity.edu',
+      password: hashedPassword,
+      role: 'MANAGER',
+    },
+  });
 
-        // Year 2
-        { code: 'IT2010', name: 'Object Oriented Programming', semesterId: createdSemesters.year2sem1.id },
-        { code: 'IT2020', name: 'Database Management Systems', semesterId: createdSemesters.year2sem1.id },
-        { code: 'IT2030', name: 'Data Structures and Algorithms', semesterId: createdSemesters.year2sem1.id },
+  // 3. Create a Lecturer
+  const lecturer = await prisma.user.create({
+    data: {
+      name: 'Dr. Alan Turing',
+      email: 'alan@verity.edu',
+      password: hashedPassword,
+      role: 'LECTURER',
+      modules: { connect: [{ id: m1.id }, { id: m2.id }] }
+    },
+  });
 
-        // Year 3
-        { code: 'SE3040', name: 'Software Architecture and Design', semesterId: semester1.id },
-        { code: 'SE3010', name: 'Software Project Management', semesterId: semester1.id },
-        { code: 'SE3080', name: 'Artificial Intelligence', semesterId: semester1.id },
-        { code: 'SE3020', name: 'Web Technologies', semesterId: semester1.id },
-    ];
+  // 4. Create 4 Students (The Group)
+  const users = await Promise.all([
+    prisma.user.create({ data: { name: 'Alice Smith', email: 'alice@student.edu', password: hashedPassword, role: 'STUDENT', indexNumber: 'IT21000001', semesterId: s1.id }}),
+    prisma.user.create({ data: { name: 'Bob Jones', email: 'bob@student.edu', password: hashedPassword, role: 'STUDENT', indexNumber: 'IT21000002', semesterId: s1.id }}),
+    prisma.user.create({ data: { name: 'Charlie Brown', email: 'charlie@student.edu', password: hashedPassword, role: 'STUDENT', indexNumber: 'IT21000003', semesterId: s1.id }}),
+    prisma.user.create({ data: { name: 'Diana Prince', email: 'diana@student.edu', password: hashedPassword, role: 'STUDENT', indexNumber: 'IT21000004', semesterId: s1.id }}),
+  ]);
 
-    for (const mod of modules) {
-        const createdMod = await prisma.module.upsert({
-            where: { code: mod.code },
-            update: {},
-            create: mod,
-        });
-        console.log(`Created module: ${createdMod.code} - ${createdMod.name}`);
-    }
 
-    // 5. Create Modules for Semester 2 (Year 3)
-    const modsSem2 = [
-        { code: 'SE3050', name: 'Cloud Computing Architecture', semesterId: semester2.id },
-        { code: 'SE3060', name: 'Distributed Systems', semesterId: semester2.id },
-        { code: 'SE3070', name: 'Mobile Application Development', semesterId: semester2.id },
-        { code: 'SE3090', name: 'Human Computer Interaction', semesterId: semester2.id },
-    ];
+  const [alice, bob, charlie, diana] = users;
 
-    for (const mod of modsSem2) {
-        const createdMod = await prisma.module.upsert({
-            where: { code: mod.code },
-            update: {},
-            create: mod,
-        });
-        console.log(`Created module: ${createdMod.code} - ${createdMod.name}`);
-    }
+  // 4. Create an active Project
+  const project = await prisma.project.create({
+    data: {
+      title: 'Verity Web System',
+      description: 'AI-driven project intelligence platform for academic tracking.',
+      startDate: new Date('2026-02-01'),
+      endDate: new Date('2026-05-30'),
+      status: 'Active',
+      members: {
+        create: [
+          { userId: alice.id, role: 'LEADER' },
+          { userId: bob.id, role: 'MEMBER' },
+          { userId: charlie.id, role: 'MEMBER' },
+          { userId: diana.id, role: 'MEMBER' },
+        ],
+      },
+    },
+  });
 
-    console.log('Seeding finished.');
+  // 5. Create a Sprint
+  const sprint = await prisma.sprint.create({
+    data: {
+      projectId: project.id,
+      name: 'Sprint 1 - Foundation',
+      startDate: new Date('2026-03-01'),
+      endDate: new Date('2026-03-14'),
+    },
+  });
+
+  // 6. Create Tasks
+  await prisma.task.create({
+    data: {
+      projectId: project.id,
+      sprintId: sprint.id,
+      title: 'Setup Database Schema',
+      description: 'Write Prisma schema and migrate.',
+      assigneeId: alice.id,
+      status: 'Done',
+      priority: 'High',
+    },
+  });
+
+  await prisma.task.create({
+    data: {
+      projectId: project.id,
+      sprintId: sprint.id,
+      title: 'Implement JWT Auth',
+      description: 'Backend login endpoints with bcrypt.',
+      assigneeId: bob.id,
+      status: 'In Progress',
+      priority: 'High',
+    },
+  });
+
+  await prisma.task.create({
+    data: {
+      projectId: project.id,
+      sprintId: sprint.id,
+      title: 'Design Kanban UI',
+      description: 'React Drag and Drop board.',
+      assigneeId: charlie.id,
+      status: 'To Do',
+      priority: 'Medium',
+    },
+  });
+
+  // 7. Create a Github Repo link
+  await prisma.githubRepo.create({
+    data: {
+      projectId: project.id,
+      owner: 'VerityDevs',
+      repoName: 'verity-web-platform',
+      url: 'https://github.com/VerityDevs/verity-web-platform',
+    },
+  });
+
+  console.log('Seed completed successfully. Users created with password: password123');
 }
 
 main()
-    .catch((e) => {
-        console.error(e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

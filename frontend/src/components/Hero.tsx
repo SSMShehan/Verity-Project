@@ -26,13 +26,13 @@ const Hero = () => {
                 animate="show"
                 className="flex flex-col items-center text-center max-w-4xl z-10"
             >
-                <motion.div variants={fadeInUp} className="group cursor-pointer inline-flex items-center space-x-2 px-3 py-1.5 mb-8 rounded-full border border-blue-200/50 bg-blue-50/50 backdrop-blur-md hover:bg-white hover:border-blue-300 transition-all shadow-sm">
+                <motion.div variants={fadeInUp} className="group cursor-pointer inline-flex items-center space-x-2 px-3 py-1.5 mb-8 rounded-full border border-emerald-200/50 bg-emerald-50/50 backdrop-blur-md hover:bg-white hover:border-emerald-300 transition-all shadow-sm">
                     <span className="flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-blue-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                        <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </span>
-                    <span className="text-xs font-semibold tracking-wide text-blue-700">Verity Intelligence Engine 2.0</span>
-                    <ChevronRight className="w-4 h-4 text-blue-500 group-hover:translate-x-0.5 transition-transform" />
+                    <span className="text-xs font-semibold tracking-wide text-emerald-700">Verity Intelligence Engine 2.0</span>
+                    <ChevronRight className="w-4 h-4 text-emerald-500 group-hover:translate-x-0.5 transition-transform" />
                 </motion.div>
 
                 <motion.h1
@@ -40,7 +40,7 @@ const Hero = () => {
                     className="text-6xl sm:text-7xl lg:text-[5.5rem] font-black tracking-[-0.04em] text-slate-900 leading-[0.95] mb-6"
                 >
                     The standard for <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-500">
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-500">
                         academic fairness.
                     </span>
                 </motion.h1>
@@ -51,12 +51,12 @@ const Hero = () => {
 
                 {/* CTA Buttons */}
                 <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                    <Link to="/register" className="group relative w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white transition-all duration-300 bg-blue-600 rounded-2xl hover:bg-blue-700 hover:shadow-[0_0_40px_rgba(37,99,235,0.4)] hover:-translate-y-1 overflow-hidden">
+                    <Link to="/register" className="group relative w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 text-base font-bold text-white transition-all duration-300 bg-emerald-600 rounded-2xl hover:bg-emerald-700 hover:shadow-[0_0_40px_rgba(37,99,235,0.4)] hover:-translate-y-1 overflow-hidden">
                         <span className="relative z-10 flex items-center">
                             Start Building Teams
                             <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </span>
-                        <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-blue-600 to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute inset-0 h-full w-full bg-gradient-to-r from-emerald-600 to-teal-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </Link>
                     <Link to="#demo" className="flex items-center px-8 py-4 space-x-2 text-base font-bold transition-all bg-white/60 backdrop-blur-xl border border-slate-200/80 rounded-full text-slate-700 hover:bg-white hover:shadow-lg shadow-sm active:scale-95">
                         <span>View Dashboard Matrix</span>
@@ -106,16 +106,16 @@ const Hero = () => {
 
                             {/* Middle Metrics */}
                             <div className="col-span-9 grid grid-cols-3 gap-6 h-32">
-                                <div className="col-span-1 rounded-2xl bg-gradient-to-br from-white to-blue-50/50 border border-white shadow-sm p-6 flex flex-col justify-between">
-                                    <div className="flex items-center space-x-2 text-slate-500"><Github className="w-4 h-4 text-blue-600" /><span className="text-sm font-bold">Commits</span></div>
+                                <div className="col-span-1 rounded-2xl bg-gradient-to-br from-white to-emerald-50/50 border border-white shadow-sm p-6 flex flex-col justify-between">
+                                    <div className="flex items-center space-x-2 text-slate-500"><Github className="w-4 h-4 text-emerald-600" /><span className="text-sm font-bold">Commits</span></div>
                                     <div className="text-4xl font-black text-slate-800 tracking-tight">248</div>
                                 </div>
                                 <div className="col-span-1 rounded-2xl bg-gradient-to-br from-white to-emerald-50/50 border border-white shadow-sm p-6 flex flex-col justify-between">
                                     <div className="flex items-center space-x-2 text-slate-500"><ShieldCheck className="w-4 h-4 text-emerald-600" /><span className="text-sm font-bold">Risk Status</span></div>
                                     <div className="text-4xl font-black text-slate-800 tracking-tight">Safe</div>
                                 </div>
-                                <div className="col-span-1 rounded-2xl bg-gradient-to-br from-white to-purple-50/50 border border-white shadow-sm p-6 flex flex-col justify-between">
-                                    <div className="flex items-center space-x-2 text-slate-500"><Activity className="w-4 h-4 text-purple-600" /><span className="text-sm font-bold">Health Score</span></div>
+                                <div className="col-span-1 rounded-2xl bg-gradient-to-br from-white to-emerald-50/50 border border-white shadow-sm p-6 flex flex-col justify-between">
+                                    <div className="flex items-center space-x-2 text-slate-500"><Activity className="w-4 h-4 text-emerald-600" /><span className="text-sm font-bold">Health Score</span></div>
                                     <div className="text-4xl font-black text-slate-800 tracking-tight">96<span className="text-lg text-slate-400">/100</span></div>
                                 </div>
 
@@ -125,8 +125,8 @@ const Hero = () => {
                                     <div className="flex items-baseline space-x-2 h-full px-2 w-full justify-between">
                                         {/* Fake Bars */}
                                         {[20, 40, 30, 70, 50, 90, 80, 100, 60].map((h, i) => (
-                                            <div key={i} className="w-12 bg-blue-100 rounded-t-lg relative group overflow-hidden" style={{ height: `${h}%` }}>
-                                                <div className="absolute bottom-0 w-full bg-blue-500 rounded-t-lg transition-all" style={{ height: `${h * 0.7}%` }}></div>
+                                            <div key={i} className="w-12 bg-emerald-100 rounded-t-lg relative group overflow-hidden" style={{ height: `${h}%` }}>
+                                                <div className="absolute bottom-0 w-full bg-emerald-500 rounded-t-lg transition-all" style={{ height: `${h * 0.7}%` }}></div>
                                             </div>
                                         ))}
                                     </div>
