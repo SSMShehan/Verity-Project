@@ -149,12 +149,23 @@ export default function ProjectCreateForm() {
             <input 
               {...register('title', { 
                   required: 'Project Title is required', 
-                  minLength: { value: 5, message: 'Title must be at least 5 characters' }
+                  minLength: { value: 5, message: 'Title must be at least 5 characters' },
+                  maxLength: { value: 100, message: 'Title cannot exceed 100 characters' }
               })}
               className={`w-full px-4 py-3.5 bg-slate-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-bold text-slate-900 ${errors.title ? 'border-red-400' : 'border-slate-200'}`}
-              placeholder="e.g. Verity Web System"
+              placeholder="e.g. Verity Web System (Max 100 chars)"
+              maxLength={100}
             />
-            {errors.title && <p className="text-red-500 text-xs mt-1.5 font-bold">{errors.title.message as string}</p>}
+            <div className="flex justify-between mt-1.5">
+              {errors.title ? (
+                <p className="text-red-500 text-xs font-bold">{errors.title.message as string}</p>
+              ) : (
+                <div />
+              )}
+              <p className={`text-[10px] font-bold ${watch('title').length > 90 ? 'text-amber-500' : 'text-slate-400'}`}>
+                {watch('title').length} / 100
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-6">
@@ -186,10 +197,16 @@ export default function ProjectCreateForm() {
                   onFocus={() => setIsFocused(true)}
                   onBlur={() => setTimeout(() => setIsFocused(false), 200)}
                   disabled={selectedMembers.length >= expectedSize - 1}
-                  className="w-full px-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-bold text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`w-full px-10 py-3 bg-slate-50 border rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all font-bold text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed ${searchQuery && !/^IT\d*$/i.test(searchQuery) ? 'border-red-400' : 'border-slate-200'}`}
                   placeholder={selectedMembers.length >= expectedSize - 1 ? `Max ${expectedSize} reached` : `Type IT number (e.g. IT2380...)`}
                 />
               </div>
+              {searchQuery && !/^IT\d*$/i.test(searchQuery) && (
+                <p className="text-red-500 text-[10px] mt-1 font-bold">Must start with IT followed by digits</p>
+              )}
+              {searchQuery.length > 10 && (
+                <p className="text-red-500 text-[10px] mt-1 font-bold">IT number cannot exceed 10 characters (IT + 8 digits)</p>
+              )}
 
               {/* Suggestions Dropdown */}
               {isFocused && searchQuery && suggestedMembers.length > 0 && (
@@ -247,7 +264,7 @@ export default function ProjectCreateForm() {
               className={`w-full px-4 py-3.5 bg-slate-50 border rounded-xl outline-none min-h-[120px] focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all font-medium text-slate-700 ${errors.abstract ? 'border-red-400' : 'border-slate-200'}`}
               placeholder="Provide a short description of what your group plans to build to help the manager validate the scope..."
             ></textarea>
-            {errors.abstract && <p className="text-red-500 text-xs mt-1.5 font-bold">{errors.abstract.message as string}</p>}
+            {errors.abstract && <p className="text-red-500 text-xs mt-1.5 font-bold">{errors.abstract?.message as string}</p>}
           </div>
 
           <div className="pt-4 border-t border-slate-100 flex justify-end">

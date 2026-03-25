@@ -205,6 +205,20 @@ router.post('/create', async (req, res) => {
     try {
         const { module, title, members, abstract } = req.body;
         
+        // 0. Server-side validation
+        if (!title || title.length < 5 || title.length > 100) {
+            return res.status(400).json({ success: false, message: 'Project Title must be between 5 and 100 characters.' });
+        }
+
+        const itFormat = /^IT\d{8}$/i;
+        if (members && Array.isArray(members)) {
+            for (const m of members) {
+                if (!itFormat.test(m)) {
+                    return res.status(400).json({ success: false, message: `Invalid IT Number format: ${m}. Must start with IT followed by 8 digits.` });
+                }
+            }
+        }
+
         // 1. Resolve users from the provided IT numbers
         // The submitted members are IT numbers like ['IT21012345', 'IT21056789']
         // We also need to map the current logged-in user as the LEADER. For this endpoint without auth middleware yet, we'll assume the request has a 'leaderIndex' or we just pick the first member as leader.

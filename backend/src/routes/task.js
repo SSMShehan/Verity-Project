@@ -9,6 +9,14 @@ router.post('/create', async (req, res) => {
     try {
         const { projectId, title, description, assigneeEmail, priority, deadline } = req.body;
 
+        if (assigneeEmail && !/^it\d{8}@my\.sliit\.lk$/i.test(assigneeEmail)) {
+            return res.status(400).json({ success: false, message: 'Assignee email must be a valid SLIIT student email (e.g. it23833098@my.sliit.lk).' });
+        }
+
+        if (deadline && new Date(deadline).setHours(0,0,0,0) < new Date().setHours(0,0,0,0)) {
+            return res.status(400).json({ success: false, message: 'Deadline cannot be in the past.' });
+        }
+
         let assigneeId = null;
         if (assigneeEmail) {
             const user = await prisma.user.findUnique({ where: { email: assigneeEmail } });

@@ -306,7 +306,11 @@ function AssignmentBuilder({ onCancel, onSave }: { onCancel: () => void, onSave:
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">Submission Deadline</label>
               <div className="relative">
-                <input type="datetime-local" {...register('deadline', { required: 'Deadline is required' })} 
+                <input type="datetime-local" {...register('deadline', { 
+                  required: 'Deadline is required',
+                  validate: (val) => new Date(val) > new Date() || 'Deadline must be in the future'
+                })} 
+                  min={new Date().toISOString().slice(0, 16)}
                   className={`w-full bg-slate-50 border rounded-xl px-10 py-3 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 ${errors.deadline ? 'border-red-400' : 'border-slate-200'}`} />
                 <Clock className="w-5 h-5 text-amber-600 absolute left-3 top-3.5" />
               </div>

@@ -137,6 +137,10 @@ router.post('/link', async (req, res) => {
             }
         }
 
+        if (url && !url.startsWith('https://github.com')) {
+            return res.status(400).json({ success: false, message: 'Repo URL must start with https://github.com' });
+        }
+
         if (!projectId || !owner || !repoName) {
             return res.status(400).json({
                 success: false,

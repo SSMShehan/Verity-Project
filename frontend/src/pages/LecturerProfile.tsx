@@ -15,7 +15,9 @@ const LecturerProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm();
+  const { register, handleSubmit, formState: { errors }, reset } = useForm({
+    mode: 'onChange'
+  });
 
   // Fetch fresh data
   const fetchProfile = async () => {
@@ -266,13 +268,25 @@ const LecturerProfile = () => {
               
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Academic Email</label>
-                <input type="email" {...register('email', { required: 'Email is required' })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 font-bold text-slate-800 outline-none" />
-                {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message as string}</p>}
+                <input type="email" {...register('email', { 
+                  required: 'Email is required',
+                  pattern: {
+                    value: /@(gmail|yahoo)/,
+                    message: 'Domain must be @gmail or @yahoo'
+                  }
+                })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 font-bold text-slate-800 outline-none" />
+                {errors.email && <p className="text-red-500 text-xs mt-1 font-bold">{errors.email.message as string}</p>}
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Lecturer ID Number</label>
-                <input {...register('indexNumber')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 font-bold text-slate-800 outline-none" placeholder="e.g. LEC10045" />
+                <input {...register('indexNumber', {
+                  pattern: {
+                    value: /^LEC(?=.*5).*$/,
+                    message: 'Must start with LEC and contain the number 5'
+                  }
+                })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 font-bold text-slate-800 outline-none" placeholder="e.g. LEC10045" />
+                {errors.indexNumber && <p className="text-red-500 text-xs mt-1 font-bold">{errors.indexNumber.message as string}</p>}
               </div>
 
               <div>
@@ -283,17 +297,35 @@ const LecturerProfile = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Office Phone</label>
-                  <input {...register('phone')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 font-bold text-slate-800 outline-none" placeholder="+94 ..." />
+                  <input {...register('phone', { 
+                    pattern: {
+                      value: /^(0\d{9}|\+94\d{9})$/,
+                      message: 'Must start with 0 or +94 and be followed by 9 digits'
+                    }
+                  })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 font-bold text-slate-800 outline-none" placeholder="+94 ..." />
+                  {errors.phone && <p className="text-red-500 text-xs mt-1 font-bold">{errors.phone.message as string}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">GitHub URL</label>
-                  <input {...register('github')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 font-bold text-slate-800 outline-none" placeholder="https://github.com/..." />
+                  <input {...register('github', {
+                    pattern: {
+                      value: /^https:\/\/github\.com/,
+                      message: 'Must start with https://github.com'
+                    }
+                  })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 font-bold text-slate-800 outline-none" placeholder="https://github.com/..." />
+                  {errors.github && <p className="text-red-500 text-xs mt-1 font-bold">{errors.github.message as string}</p>}
                 </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">LinkedIn URL</label>
-                <input {...register('linkedin')} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 font-bold text-slate-800 outline-none" placeholder="https://linkedin.com/in/..." />
+                <input {...register('linkedin', {
+                  pattern: {
+                    value: /^https:\/\/linkedin\.com\/in/,
+                    message: 'Must start with https://linkedin.com/in'
+                  }
+                })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 font-bold text-slate-800 outline-none" placeholder="https://linkedin.com/in/..." />
+                {errors.linkedin && <p className="text-red-500 text-xs mt-1 font-bold">{errors.linkedin.message as string}</p>}
               </div>
 
               <div>
