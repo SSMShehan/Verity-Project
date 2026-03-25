@@ -9,6 +9,11 @@ const register = async (req, res) => {
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) return res.status(400).json({ message: 'User already exists' });
 
+        if (indexNumber) {
+            const existingIndex = await prisma.user.findUnique({ where: { indexNumber } });
+            if (existingIndex) return res.status(400).json({ message: 'Index Number already registered by another user' });
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = await prisma.user.create({
             data: { name, email, password: hashedPassword, role: role || 'STUDENT', indexNumber }
@@ -26,6 +31,11 @@ const registerStudent = async (req, res) => {
 
         const existingUser = await prisma.user.findUnique({ where: { email } });
         if (existingUser) return res.status(400).json({ message: 'User already exists' });
+
+        if (indexNumber) {
+            const existingIndex = await prisma.user.findUnique({ where: { indexNumber } });
+            if (existingIndex) return res.status(400).json({ message: 'Index Number already registered by another user' });
+        }
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = await prisma.user.create({

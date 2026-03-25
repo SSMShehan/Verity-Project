@@ -68,6 +68,10 @@ export default function GithubIntegration() {
 
   const handleLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (linkForm.url && !linkForm.url.startsWith('https://github.com')) {
+      alert('Repo URL must start with https://github.com');
+      return;
+    }
     try {
       const resp = await axios.post('http://localhost:5000/api/github/link', {
         projectId: id,
@@ -146,9 +150,25 @@ export default function GithubIntegration() {
                 </div>
                 <div>
                   <label className="block text-sm-semibold text-slate-700 mb-1">Repo URL <span className="text-slate-400 font-normal">(Optional)</span></label>
-                  <input value={linkForm.url} onChange={e => setLinkForm({...linkForm, url: e.target.value})} placeholder="https://github.com/owner/repo" className="glass-input" />
+                  <input 
+                    value={linkForm.url} 
+                    onChange={e => setLinkForm({...linkForm, url: e.target.value})} 
+                    placeholder="https://github.com/owner/repo" 
+                    className={`glass-input ${linkForm.url && !linkForm.url.startsWith('https://github.com') ? 'border-red-400 focus:ring-red-100 ring-2 ring-transparent' : ''}`} 
+                  />
+                  {linkForm.url && !linkForm.url.startsWith('https://github.com') && (
+                    <p className="text-red-500 text-[10px] font-bold mt-1.5 flex items-center gap-1">
+                      <X className="w-3 h-3" /> Repo URL must start with https://github.com
+                    </p>
+                  )}
                 </div>
-                <button type="submit" className="w-full btn-primary py-3 mt-2 font-bold">Connect Repository</button>
+                <button 
+                  type="submit" 
+                  disabled={linkForm.url ? !linkForm.url.startsWith('https://github.com') : false}
+                  className="w-full btn-primary py-3 mt-2 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Connect Repository
+                </button>
               </form>
             </div>
           </div>

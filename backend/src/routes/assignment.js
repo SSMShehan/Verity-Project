@@ -104,6 +104,10 @@ router.post('/create', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Title, module code, deadline, and format are required.' });
         }
 
+        if (new Date(deadline) <= new Date()) {
+            return res.status(400).json({ success: false, message: 'Deadline must be in the future.' });
+        }
+
         // If no createdById provided, use the first lecturer in the DB as fallback
         let lecturerId = createdById;
         if (!lecturerId) {
@@ -248,7 +252,12 @@ router.put('/:id', async (req, res) => {
         const updateData = {};
         if (title !== undefined) updateData.title = title;
         if (description !== undefined) updateData.description = description;
-        if (deadline !== undefined) updateData.deadline = new Date(deadline);
+        if (deadline !== undefined) {
+            if (new Date(deadline) <= new Date()) {
+                return res.status(400).json({ success: false, message: 'Deadline must be in the future.' });
+            }
+            updateData.deadline = new Date(deadline);
+        }
         if (format !== undefined) updateData.format = format;
         if (status !== undefined) updateData.status = status;
         if (maxSizeMB !== undefined) updateData.maxSizeMB = maxSizeMB;

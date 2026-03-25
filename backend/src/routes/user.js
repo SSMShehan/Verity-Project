@@ -36,11 +36,44 @@ router.put('/:id', async (req, res) => {
 
         const updateData = {};
         if (name) updateData.name = name;
-        if (email) updateData.email = email;
-        if (indexNumber !== undefined) updateData.indexNumber = indexNumber;
-        if (phone !== undefined) updateData.phone = phone;
-        if (github !== undefined) updateData.github = github;
-        if (linkedin !== undefined) updateData.linkedin = linkedin;
+        if (email) {
+            if (!/@(gmail|yahoo)/.test(email)) {
+                return res.status(400).json({ success: false, message: 'Email domain must be @gmail or @yahoo' });
+            }
+            updateData.email = email;
+        }
+
+        if (indexNumber !== undefined) {
+            const userBefore = await prisma.user.findUnique({ where: { id } });
+            if (userBefore.role === 'STUDENT' && !/^IT\d{8}$/.test(indexNumber)) {
+                return res.status(400).json({ success: false, message: 'Student ID must start with IT followed by 8 digits' });
+            }
+            if (userBefore.role === 'LECTURER' && !/^LEC(?=.*5).*$/.test(indexNumber)) {
+                return res.status(400).json({ success: false, message: 'Lecturer ID must start with LEC and contain the number 5' });
+            }
+            updateData.indexNumber = indexNumber;
+        }
+
+        if (phone !== undefined) {
+            if (phone && !/^(0\d{9}|\+94\d{9})$/.test(phone)) {
+                return res.status(400).json({ success: false, message: 'Invalid phone number format. Must start with 0 or +94 and contain 10/11 digits.' });
+            }
+            updateData.phone = phone;
+        }
+        
+        if (github !== undefined) {
+            if (github && !/^https:\/\/github\.com/.test(github)) {
+                return res.status(400).json({ success: false, message: 'GitHub URL must start with https://github.com' });
+            }
+            updateData.github = github;
+        }
+
+        if (linkedin !== undefined) {
+            if (linkedin && !/^https:\/\/linkedin\.com\/in/.test(linkedin)) {
+                return res.status(400).json({ success: false, message: 'LinkedIn URL must start with https://linkedin.com/in' });
+            }
+            updateData.linkedin = linkedin;
+        }
         if (skills !== undefined) updateData.skills = skills;
         
         if (password && password.trim() !== '') {

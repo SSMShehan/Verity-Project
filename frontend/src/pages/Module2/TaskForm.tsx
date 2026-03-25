@@ -60,9 +60,15 @@ export default function TaskForm() {
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2">Assignee (Email)</label>
             <input 
-              {...register('assignee', { required: 'Assignee is required', pattern: { value: /^\S+@\S+$/i, message: "Invalid email" } })} 
+              {...register('assignee', { 
+                required: 'Assignee is required', 
+                pattern: { 
+                  value: /^it\d{8}@my\.sliit\.lk$/i, 
+                  message: "Email must be a valid SLIIT student email (e.g. it23833098@my.sliit.lk)" 
+                } 
+              })} 
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-medium"
-              placeholder="member@student.com"
+              placeholder="itxxxxxxxx@my.sliit.lk"
             />
             {errors.assignee && <p className="text-red-500 text-xs mt-1.5 font-bold">{errors.assignee.message as string}</p>}
           </div>
@@ -80,7 +86,11 @@ export default function TaskForm() {
           <label className="block text-sm font-bold text-slate-700 mb-2">Deadline</label>
           <input 
             type="date"
-            {...register('deadline', { required: 'Deadline is required' })} 
+            {...register('deadline', { 
+              required: 'Deadline is required',
+              validate: (val) => new Date(val).setHours(0,0,0,0) >= new Date().setHours(0,0,0,0) || 'Deadline cannot be in the past'
+            })} 
+            min={new Date().toISOString().split('T')[0]}
             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-700"
           />
           {errors.deadline && <p className="text-red-500 text-xs mt-1.5 font-bold">{errors.deadline.message as string}</p>}
