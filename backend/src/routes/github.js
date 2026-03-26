@@ -129,11 +129,12 @@ router.post('/link', async (req, res) => {
         repoName = repoName?.trim();
         url = url?.trim();
 
-        if ((!owner || !repoName) && url) {
+        if (url) {
             const parsed = parseGithubRepoUrl(url);
             if (parsed) {
-                owner = owner || parsed.owner;
-                repoName = repoName || parsed.repoName;
+                // Prioritize the URL contents if they differ from manual fields
+                owner = parsed.owner;
+                repoName = parsed.repoName;
             }
         }
 

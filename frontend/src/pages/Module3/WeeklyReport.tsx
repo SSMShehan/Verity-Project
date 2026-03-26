@@ -14,10 +14,20 @@ type FormData = {
 
 export default function WeeklyReport() {
   const { id } = useParams();
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>();
+  const MAX_FIELD_LENGTH = 300;
+  const { register, handleSubmit, watch, formState: { errors }, reset } = useForm<FormData>();
   const [submitted, setSubmitted] = useState(false);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const completedValue = watch('completed') || '';
+  const challengesValue = watch('challenges') || '';
+  const planValue = watch('plan') || '';
+
+  const getCounterColorClass = (length: number) => {
+    if (length >= MAX_FIELD_LENGTH) return 'text-red-600';
+    if (length >= 280) return 'text-amber-600';
+    return 'text-slate-500';
+  };
 
   const fetchReports = async () => {
     try {
@@ -121,11 +131,17 @@ export default function WeeklyReport() {
                 Completed Work
               </label>
               <textarea
-                {...register('completed', { required: 'Please describe your completed work.', minLength: { value: 10, message: 'Provide at least 10 characters.' } })}
+                {...register('completed', {
+                  required: 'Please describe your completed work.',
+                  minLength: { value: 10, message: 'Provide at least 10 characters.' },
+                  maxLength: { value: MAX_FIELD_LENGTH, message: `Maximum ${MAX_FIELD_LENGTH} characters allowed.` }
+                })}
                 rows={4}
+                maxLength={MAX_FIELD_LENGTH}
                 className="glass-input resize-none"
                 placeholder="Describe the tasks, features, or deliverables you completed this week..."
               />
+              <p className={`text-xs mt-1.5 ${getCounterColorClass(completedValue.length)}`}>{completedValue.length}/{MAX_FIELD_LENGTH} characters</p>
               {errors.completed && (
                 <p className="text-red-600 text-xs font-semibold mt-1.5 flex items-center gap-1">
                   <AlertTriangle className="w-3.5 h-3.5" /> {errors.completed.message}
@@ -139,11 +155,16 @@ export default function WeeklyReport() {
                 Challenges Faced
               </label>
               <textarea
-                {...register('challenges', { required: 'Please mention any challenges or blockers.' })}
+                {...register('challenges', {
+                  required: 'Please mention any challenges or blockers.',
+                  maxLength: { value: MAX_FIELD_LENGTH, message: `Maximum ${MAX_FIELD_LENGTH} characters allowed.` }
+                })}
                 rows={3}
+                maxLength={MAX_FIELD_LENGTH}
                 className="glass-input resize-none"
                 placeholder="Describe any blockers, delays, or technical difficulties..."
               />
+              <p className={`text-xs mt-1.5 ${getCounterColorClass(challengesValue.length)}`}>{challengesValue.length}/{MAX_FIELD_LENGTH} characters</p>
               {errors.challenges && (
                 <p className="text-red-600 text-xs font-semibold mt-1.5 flex items-center gap-1">
                   <AlertTriangle className="w-3.5 h-3.5" /> {errors.challenges.message}
@@ -157,11 +178,16 @@ export default function WeeklyReport() {
                 Next Week's Plan
               </label>
               <textarea
-                {...register('plan', { required: "Please outline your plan for next week." })}
+                {...register('plan', {
+                  required: "Please outline your plan for next week.",
+                  maxLength: { value: MAX_FIELD_LENGTH, message: `Maximum ${MAX_FIELD_LENGTH} characters allowed.` }
+                })}
                 rows={3}
+                maxLength={MAX_FIELD_LENGTH}
                 className="glass-input resize-none"
                 placeholder="List the key tasks and goals you plan to accomplish next week..."
               />
+              <p className={`text-xs mt-1.5 ${getCounterColorClass(planValue.length)}`}>{planValue.length}/{MAX_FIELD_LENGTH} characters</p>
               {errors.plan && (
                 <p className="text-red-600 text-xs font-semibold mt-1.5 flex items-center gap-1">
                   <AlertTriangle className="w-3.5 h-3.5" /> {errors.plan.message}

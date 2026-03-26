@@ -19,6 +19,13 @@ export default function GithubIntegration() {
   // Link Form State
   const [linkForm, setLinkForm] = useState({ owner: '', repoName: '', url: '' });
 
+  const parseGithubUrl = (url: string) => {
+    if (!url) return null;
+    const match = url.match(/github\.com\/([^/]+)\/([^/#?]+)/i);
+    if (!match) return null;
+    return { owner: match[1], repoName: match[2].replace(/\.git$/i, '') };
+  };
+
   const fetchRepoData = async () => {
     try {
       setLoading(true);
@@ -152,14 +159,24 @@ export default function GithubIntegration() {
                   <label className="block text-sm-semibold text-slate-700 mb-1">Repo URL <span className="text-slate-400 font-normal">(Optional)</span></label>
                   <input 
                     value={linkForm.url} 
-                    onChange={e => setLinkForm({...linkForm, url: e.target.value})} 
+                    onChange={e => {
+                      const val = e.target.value;
+                      const parsed = parseGithubUrl(val);
+                      if (parsed) {
+                        setLinkForm({ ...linkForm, url: val, owner: parsed.owner, repoName: parsed.repoName });
+                      } else {
+                        setLinkForm({ ...linkForm, url: val });
+                      }
+                    }} 
                     placeholder="https://github.com/owner/repo" 
                     className={`glass-input ${linkForm.url && !linkForm.url.startsWith('https://github.com') ? 'border-red-400 focus:ring-red-100 ring-2 ring-transparent' : ''}`} 
                   />
-                  {linkForm.url && !linkForm.url.startsWith('https://github.com') && (
+                  {linkForm.url && !linkForm.url.startsWith('https://github.com') ? (
                     <p className="text-red-500 text-[10px] font-bold mt-1.5 flex items-center gap-1">
                       <X className="w-3 h-3" /> Repo URL must start with https://github.com
                     </p>
+                  ) : (
+                    <p className="text-slate-400 text-[10px] mt-1.5 font-medium">Pasting a URL will auto-fill the fields above.</p>
                   )}
                 </div>
                 <button 
