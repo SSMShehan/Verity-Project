@@ -48,7 +48,7 @@ router.get('/list/:projectId', async (req, res) => {
         const userIds = [...new Set(reports.map(r => r.submittedBy))];
         const users = await prisma.user.findMany({
             where: { id: { in: userIds } },
-            select: { id: true, name: true }
+            select: { id: true, name: true, indexNumber: true }
         });
         
         // Members to get their roles
@@ -75,6 +75,7 @@ router.get('/list/:projectId', async (req, res) => {
                 createdAt: r.createdAt,
                 userId: r.submittedBy,
                 userName: user ? user.name : 'Unknown User',
+                userIndexNumber: user ? user.indexNumber : null,
                 role: member ? member.role : 'Member',
                 completed: parsedContent.completed,
                 challenges: parsedContent.challenges,

@@ -41,7 +41,6 @@ const LecturerProfile = () => {
       name: user?.name,
       email: user?.email,
       indexNumber: user?.indexNumber || '',
-      password: '',
       phone: user?.phone || '',
       github: user?.github || '',
       linkedin: user?.linkedin || '',
@@ -57,7 +56,6 @@ const LecturerProfile = () => {
         name: data.name,
         email: data.email,
         indexNumber: data.indexNumber,
-        password: data.password,
         phone: data.phone,
         github: data.github,
         linkedin: data.linkedin,
@@ -271,8 +269,8 @@ const LecturerProfile = () => {
                 <input type="email" {...register('email', { 
                   required: 'Email is required',
                   pattern: {
-                    value: /@(gmail|yahoo)/,
-                    message: 'Domain must be @gmail or @yahoo'
+                    value: /@/,
+                    message: 'Email must contain @ symbol'
                   }
                 })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 font-bold text-slate-800 outline-none" />
                 {errors.email && <p className="text-red-500 text-xs mt-1 font-bold">{errors.email.message as string}</p>}
@@ -287,11 +285,6 @@ const LecturerProfile = () => {
                   }
                 })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 font-bold text-slate-800 outline-none" placeholder="e.g. LEC10045" />
                 {errors.indexNumber && <p className="text-red-500 text-xs mt-1 font-bold">{errors.indexNumber.message as string}</p>}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">New Password <span className="text-slate-400 lowercase font-normal">(optional)</span></label>
-                <input type="password" {...register('password')} placeholder="Leave blank to keep current" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 font-bold text-slate-800 outline-none" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">

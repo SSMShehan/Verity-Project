@@ -6,8 +6,11 @@ import { CheckCircle, AlertTriangle, Target, MessageSquare, X, BookOpen, Loader2
 
 export default function LecturerReview() {
   const { id } = useParams();
+  const IT_INDEX_PATTERN = /^IT\d{0,8}$/i;
   const [selectedReport, setSelectedReport] = useState<any>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'reviewed'>('all');
+  const [reportSearch, setReportSearch] = useState('');
+  const [reportSort, setReportSort] = useState<'newest' | 'oldest' | 'name-asc' | 'name-desc'>('newest');
   const [reports, setReports] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -29,6 +32,8 @@ export default function LecturerReview() {
           status: r.status,
           grade: r.grade,
           feedback: r.feedback,
+          indexNumber: r.userIndexNumber,
+          createdAt: r.createdAt,
           date: new Date(r.createdAt).toLocaleDateString()
         })));
       }
@@ -69,6 +74,27 @@ export default function LecturerReview() {
     if (filter === 'reviewed') return r.status === 'Reviewed';
     return true;
   });
+
+  const reportSearchQuery = reportSearch.trim().toUpperCase();
+  const reportSearchValid = !reportSearchQuery || IT_INDEX_PATTERN.test(reportSearchQuery);
+  const displayedReports = [...filteredReports]
+    .filter(r => {
+      if (!reportSearchQuery) return true;
+      if (!reportSearchValid) return false;
+      return (r.indexNumber || '').toUpperCase().startsWith(reportSearchQuery);
+    })
+    .sort((a, b) => {
+      if (reportSort === 'newest') {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+      if (reportSort === 'oldest') {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      if (reportSort === 'name-asc') {
+        return (a.member || '').localeCompare(b.member || '');
+      }
+      return (b.member || '').localeCompare(a.member || '');
+    });
 
   const pendingCount = reports.filter(r => r.status === 'Pending').length;
   const reviewedCount = reports.filter(r => r.status === 'Reviewed').length;
@@ -118,11 +144,37 @@ export default function LecturerReview() {
         ))}
       </div>
 
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input
+          type="text"
+          value={reportSearch}
+          onChange={(e) => setReportSearch(e.target.value.toUpperCase())}
+          placeholder="Search by IT number (e.g., IT21 or IT21000001)"
+          maxLength={10}
+          className="glass-input sm:flex-1"
+        />
+        <select
+          value={reportSort}
+          onChange={(e) => setReportSort(e.target.value as 'newest' | 'oldest' | 'name-asc' | 'name-desc')}
+          aria-label="Sort reports"
+          className="glass-input sm:w-64"
+        >
+          <option value="newest">Sort: Newest first</option>
+          <option value="oldest">Sort: Oldest first</option>
+          <option value="name-asc">Sort: Student name (A-Z)</option>
+          <option value="name-desc">Sort: Student name (Z-A)</option>
+        </select>
+      </div>
+
+      {reportSearchQuery && !reportSearchValid && (
+        <p className="text-red-600 text-sm font-semibold -mt-1">Search must start with IT and contain only digits after it (up to 8 digits), e.g., IT21 or IT21000001.</p>
+      )}
+
       {loading ? (
         <div className="flex justify-center py-20">
            <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
         </div>
-      ) : filteredReports.length === 0 ? (
+      ) : displayedReports.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 border-dashed">
           <BookOpen className="w-16 h-16 text-slate-200 mx-auto mb-4" />
           <h3 className="text-xl font-black text-slate-800">No Reports Found</h3>
@@ -130,7 +182,7 @@ export default function LecturerReview() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredReports.map((rep, idx) => (
+          {displayedReports.map((rep, idx) => (
           <div key={rep.id} className={`card p-6 border-l-4 animate-fade-up-delay-${Math.min(idx + 1, 5)} ${rep.status === 'Pending' ? 'border-l-amber-400' : 'border-l-emerald-500'}`}>
             <div className="flex flex-col xl:flex-row gap-6">
               
@@ -142,6 +194,7 @@ export default function LecturerReview() {
                 <div>
                   <h4 className="font-bold text-slate-900">{rep.member}</h4>
                   <span className={`badge ${rep.role === 'Leader' ? 'badge-amber' : 'badge-slate'} mt-1`}>{rep.role}</span>
+                  <p className="text-xs text-slate-500 font-semibold mt-1">{rep.indexNumber || 'IT Number not set'}</p>
                   <p className="text-xs text-slate-400 mt-1">{rep.date}</p>
                 </div>
               </div>
@@ -211,6 +264,7 @@ export default function LecturerReview() {
               <button
                 onClick={() => { setSelectedReport(null); reset(); }}
                 className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                title="Close review modal"
                 disabled={submitting}
               >
                 <X className="w-4 h-4" />
