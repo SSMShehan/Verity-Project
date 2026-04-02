@@ -13,15 +13,15 @@ export default function StudentNav() {
 
   const user = (() => {
     try { 
-      const data = JSON.parse(localStorage.getItem('user') || '{}');
+      const data = JSON.parse(sessionStorage.getItem('user') || '{}');
       return data.user || data;
     } catch { return {}; }
   })();
   const initials = user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'ST';
 
   const handleSignOut = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     window.location.href = '/login';
   };
 
