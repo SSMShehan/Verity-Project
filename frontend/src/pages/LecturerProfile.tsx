@@ -17,7 +17,7 @@ interface User {
 const LecturerProfile = () => {
   const localUser = (() => {
     try { 
-      const data = JSON.parse(localStorage.getItem('user') || '{}');
+      const data = JSON.parse(sessionStorage.getItem('user') || '{}');
       return data.user || data;
     } catch { return {}; }
   })();
