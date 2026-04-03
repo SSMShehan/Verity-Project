@@ -52,6 +52,22 @@ async function main() {
       targetAudience: 'All Modules',
       isPinned: false,
       authorId: manager.id
+    },
+    {
+      title: 'Final Year Project Guidelines',
+      content: '<h2>Final Year Project Phase 1</h2><p>Please note that the deadline for submitting the initial project proposal is rapidly approaching. Ensure your document comprehensively covers the following areas:</p><ul><li>Architecture diagram and data flow</li><li>Technology stack (Frontend & Backend)</li><li>Individual team member roles</li></ul><p>For more details, please see the module handbook.</p>',
+      category: 'Academic',
+      targetAudience: 'IT3040',
+      isPinned: false,
+      authorId: lecturer.id
+    },
+    {
+      title: 'Campus IT Network Upgrade',
+      content: '<h2>Scheduled Network Outage</h2><p>The campus IT infrastructure team is performing upgrades on the primary network switches tonight. During this downtime, the following systems will be <strong>completely offline</strong>:</p><ol><li>Library Digital Archives</li><li>Student Registration Portal</li><li>Internal Campus VPN</li></ol><p><em>We appreciate your patience while we speed up the network!</em></p>',
+      category: 'Urgent',
+      targetAudience: 'System',
+      isPinned: true,
+      authorId: manager.id
     }
   ];
 
