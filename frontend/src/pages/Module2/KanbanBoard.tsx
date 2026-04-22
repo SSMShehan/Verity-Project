@@ -97,7 +97,7 @@ export default function KanbanBoard() {
               <Sparkles className="h-3.5 w-3.5" /> Productivity Zone
             </div>
             <h2 className="text-4xl font-black tracking-tight text-slate-900">Kanban Workflow</h2>
-            <p className="mt-2 text-base font-medium text-slate-600">Plan, build, review, and ship with one clean board.</p>
+            <p className="mt-2 text-base font-medium text-slate-600">Keep every task moving from idea to delivery with a focused board built for clear progress.</p>
           </div>
 
           <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
