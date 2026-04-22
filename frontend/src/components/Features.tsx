@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import Tilt from 'react-parallax-tilt';
 
 const Features = () => {
-    const containerVariants = {
+    const containerVariants: any = {
         hidden: { opacity: 0 },
         show: {
             opacity: 1,
@@ -11,14 +11,14 @@ const Features = () => {
         }
     };
     
-    const itemVariants = {
+    const itemVariants: any = {
         hidden: { opacity: 0, y: 40, scale: 0.9 },
         show: { 
             opacity: 1, 
             y: 0, 
             scale: 1,
             transition: { 
-                type: "spring", 
+                type: "spring" as const, 
                 stiffness: 100, 
                 damping: 20,
                 duration: 0.6
@@ -26,18 +26,18 @@ const Features = () => {
         }
     };
 
-    const iconVariants = {
+    const iconVariants: any = {
         rest: { rotate: 0, scale: 1 },
         hover: { rotate: 6, scale: 1.1, transition: { duration: 0.3 } }
     };
 
-    const floatVariants = {
+    const floatVariants: any = {
         animate: { 
             y: [0, -8, 0],
             transition: { 
                 duration: 3, 
                 repeat: Infinity,
-                ease: "easeInOut"
+                ease: "easeInOut" as const
             }
         }
     };

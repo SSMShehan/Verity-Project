@@ -73,20 +73,21 @@ export default function NotificationCenter() {
     const [managerTab, setManagerTab] = useState<ManagerTab>('all');
     const panelRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
-    const userRole = getUserRole();
-    const isLecturerView = userRole === 'lecturer';
-    const isManagerView = userRole === 'manager';
 
     const getUserId = useCallback(() => {
         try {
-            const data = JSON.parse(sessionStorage.getItem('user') || '{}');
+            const userStr = sessionStorage.getItem('user');
+            if (!userStr) return null;
+            const data = JSON.parse(userStr);
             return data.user?.id || data.id || null;
         } catch { return null; }
     }, []);
 
     const getUserRole = useCallback(() => {
         try {
-            const data = JSON.parse(sessionStorage.getItem('user') || '{}');
+            const userStr = sessionStorage.getItem('user');
+            if (!userStr) return '';
+            const data = JSON.parse(userStr);
             return String(data.user?.role || data.role || '').toLowerCase();
         } catch {
             return '';
@@ -98,6 +99,10 @@ export default function NotificationCenter() {
         if (role === 'manager') return 'manager';
         return undefined;
     }, [getUserRole]);
+
+    const userRole = getUserRole();
+    const isLecturerView = userRole === 'lecturer';
+    const isManagerView = userRole === 'manager';
 
     const matchesScope = useCallback((notification: Notification) => {
         const scope = getScope();
