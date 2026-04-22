@@ -90,7 +90,7 @@ export default function LecturerAssignments() {
             </div>
             <div className="space-y-2">
               <h1 className="page-title text-3xl text-slate-900 md:text-4xl xl:text-[2.85rem]">Assignments & Submissions</h1>
-              <p className="page-subtitle max-w-3xl text-slate-600">Create global file submission drops for students to upload their work.</p>
+              <p className="page-subtitle max-w-3xl text-slate-600">Create simple upload spaces where students can submit their work.</p>
             </div>
           </div>
 
