@@ -294,7 +294,9 @@ router.post('/submit', async (req, res) => {
                 }
             });
 
-            scheduleSubmissionAnalysis(updated.id, assignmentId, fileName, filePath);
+            scheduleSubmissionAnalysis(updated.id, assignmentId, fileName, filePath).catch(err => {
+                console.error('[PlagiarismQueue] Failed to schedule analysis:', err.message);
+            });
             return res.status(200).json({ success: true, submission: updated, replaced: true });
         }
 
@@ -310,7 +312,9 @@ router.post('/submit', async (req, res) => {
             }
         });
 
-        scheduleSubmissionAnalysis(submission.id, assignmentId, fileName, filePath);
+        scheduleSubmissionAnalysis(submission.id, assignmentId, fileName, filePath).catch(err => {
+            console.error('[PlagiarismQueue] Failed to schedule analysis:', err.message);
+        });
 
         res.status(201).json({ success: true, submission });
     } catch (error) {

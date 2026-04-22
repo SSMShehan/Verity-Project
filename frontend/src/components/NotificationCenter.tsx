@@ -73,8 +73,9 @@ export default function NotificationCenter() {
     const [managerTab, setManagerTab] = useState<ManagerTab>('all');
     const panelRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
-    const isLecturerView = window.location.pathname.startsWith('/lecturer');
-    const isManagerView = window.location.pathname.startsWith('/manager');
+    const userRole = getUserRole();
+    const isLecturerView = userRole === 'lecturer';
+    const isManagerView = userRole === 'manager';
 
     const getUserId = useCallback(() => {
         try {

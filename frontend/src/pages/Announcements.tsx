@@ -54,11 +54,18 @@ const ROLE_BADGE: Record<string, string> = {
 };
 
 /* ─── helpers ─── */
-function getCurrentRole(): UserRole {
-  const path = window.location.pathname;
-  if (path.startsWith('/lecturer')) return 'lecturer';
-  if (path.startsWith('/manager')) return 'manager';
-  return 'student';
+// Use session data for role detection to ensure tab isolation
+function getSessionRole(): UserRole {
+  try {
+    const data = JSON.parse(sessionStorage.getItem('user') || '{}');
+    const user = data.user || data;
+    const role = user?.role?.toLowerCase();
+    if (role === 'lecturer') return 'lecturer';
+    if (role === 'manager') return 'manager';
+    return 'student';
+  } catch {
+    return 'student';
+  }
 }
 
 function getUserFromStorage() {
@@ -71,7 +78,7 @@ function getUserFromStorage() {
 /* ─── sub-components ─── */
 
 function ComposerCard({ onClose, onPostSuccess, onError }: { onClose: () => void, onPostSuccess: (announcement: Announcement) => void, onError: (msg: string) => void }) {
-  const role = getCurrentRole();
+  const role = getSessionRole();
   const isLecturer = role === 'lecturer';
   const [isSystemWide, setIsSystemWide] = useState(false);
   const [title, setTitle] = useState('');
@@ -174,7 +181,7 @@ function ComposerCard({ onClose, onPostSuccess, onError }: { onClose: () => void
           value={content} 
           onChange={setContent} 
           placeholder="What would you like to announce?"
-          className="h-32 mb-10" // added padding logic for quill interior
+          className="h-64 mb-12" // Increased height to h-64 and margin to mb-12
         />
       </div>
 
@@ -242,7 +249,7 @@ function ComposerCard({ onClose, onPostSuccess, onError }: { onClose: () => void
 
 
 function EditComposerCard({ onClose, onEditSuccess, onError, initialData }: { onClose: () => void, onEditSuccess: (announcement: Announcement) => void, onError: (msg: string) => void, initialData: Announcement }) {
-  const role = getCurrentRole();
+  const role = getSessionRole();
   const isLecturer = role === 'lecturer';
   const [isSystemWide, setIsSystemWide] = useState(initialData.module === 'System');
   const [title, setTitle] = useState(initialData.title);
@@ -336,7 +343,7 @@ function EditComposerCard({ onClose, onEditSuccess, onError, initialData }: { on
           theme="snow" 
           value={content} 
           onChange={setContent} 
-          className="h-32 mb-10"
+          className="h-64 mb-12"
         />
       </div>
 
@@ -503,7 +510,7 @@ function AnnouncementCard({
    MAIN COMPONENT
    ═══════════════════════════════════════════════════════ */
 export default function Announcements() {
-  const role = getCurrentRole();
+  const role = getSessionRole();
   const isLecturer = role === 'lecturer';
   const [showComposer, setShowComposer] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
@@ -582,6 +589,11 @@ export default function Announcements() {
   };
 
   useEffect(() => {
+    const token = sessionStorage.getItem('token');
+    if (!token || token === 'null') {
+      window.location.href = '/login';
+      return;
+    }
     fetchAnnouncements();
   }, []);
 

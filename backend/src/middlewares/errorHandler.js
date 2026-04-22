@@ -1,5 +1,7 @@
 const errorHandler = (err, req, res, next) => {
     console.error(`[Error] ${err.name}:`, err.message);
+    if (err.details) console.error(`[Details]:`, err.details);
+    if (err.stack) console.error(`[Stack]:`, err.stack);
     
     // Check for Prisma specific errors
     if (err.code && err.code.startsWith('P2')) {

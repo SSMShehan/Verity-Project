@@ -52,7 +52,7 @@ export default function StudentCalendar() {
   // ─── Get user ────────────────────────────────────────────────────
   const getUser = () => {
     try {
-      const stored = localStorage.getItem('user');
+      const stored = sessionStorage.getItem('user');
       if (!stored) return null;
       const parsed = JSON.parse(stored);
       return parsed.user || parsed;

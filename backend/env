@@ -1,0 +1,11 @@
+PORT=5000
+DATABASE_URL="postgresql://postgres:admin123@localhost:5432/verity_db?schema=public"
+JWT_SECRET="super_secret_verity_jwt_key_development_only"
+
+SAPLING_API_KEY=U73MQEOZ58JHXL0MKAGA38BATNJQXJ6M
+
+# Database for Background workers & Sockets
+REDIS_URL="rediss://default:gQAAAAAAASh5AAIncDFlOWM3ODg5ZDA2ZTQ0OTZjYTRkZjIxZjliZjdmMGU4ZHAxNzU4OTc@comic-glowworm-75897.upstash.io:6379"
+
+# AI
+GEMINI_API_KEY=AIzaSyAOYTmZrGsYtkUiVfs8Q8glf0tllrKkdwk
