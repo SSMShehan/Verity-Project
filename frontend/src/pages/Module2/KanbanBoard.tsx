@@ -66,6 +66,12 @@ export default function KanbanBoard() {
     (t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const statusLabel = (status: string) => {
+    if (status === 'Review') return 'Done';
+    if (status === 'Done') return 'Completed';
+    return status;
+  };
+
   const statusCount = (status: string) => filteredTasks.filter((t) => t.status === status).length;
   const totalTasks = filteredTasks.length;
   const doneTasks = statusCount('Done');
@@ -97,7 +103,7 @@ export default function KanbanBoard() {
               <Sparkles className="h-3.5 w-3.5" /> Productivity Zone
             </div>
             <h2 className="text-4xl font-black tracking-tight text-slate-900">Kanban Workflow</h2>
-            <p className="mt-2 text-base font-medium text-slate-600">Keep every task moving from idea to delivery with a focused board built for clear progress.</p>
+            <p className="mt-2 text-base font-medium text-slate-600">Move every task from idea to delivery with clear progress.</p>
           </div>
 
           <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
@@ -154,7 +160,7 @@ export default function KanbanBoard() {
                       <Icon className={`h-5 w-5 ${meta.accent}`} />
                     </div>
                     <div>
-                      <p className="text-sm font-black uppercase tracking-wider text-slate-800">{col}</p>
+                      <p className="text-sm font-black uppercase tracking-wider text-slate-800">{statusLabel(col)}</p>
                       <p className="text-[11px] font-semibold text-slate-400">{meta.hint}</p>
                     </div>
                   </div>
@@ -216,7 +222,7 @@ export default function KanbanBoard() {
                   {selectedTask.priority || 'Low'} Priority
                 </span>
                 <span className="rounded-md border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-indigo-700">
-                  {selectedTask.status}
+                  {statusLabel(selectedTask.status)}
                 </span>
               </div>
 
@@ -230,7 +236,7 @@ export default function KanbanBoard() {
                 }}
               >
                 {columns.map((c) => (
-                  <option key={c} value={c}>{c}</option>
+                  <option key={c} value={c}>{statusLabel(c)}</option>
                 ))}
               </select>
 

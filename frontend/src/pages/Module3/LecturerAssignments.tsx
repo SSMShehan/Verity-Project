@@ -78,9 +78,9 @@ export default function LecturerAssignments() {
 
   return (
     <div className="animate-fade-up max-w-7xl mx-auto space-y-8">
-      <section className="relative overflow-hidden rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-slate-50 px-6 py-7 shadow-xl shadow-slate-200/40 md:px-8 md:py-8">
-        <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-emerald-400/10 blur-3xl" />
-        <div className="absolute -left-12 bottom-0 h-36 w-36 rounded-full bg-teal-400/10 blur-3xl" />
+      <section className="relative overflow-hidden rounded-[2rem] border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-teal-50 px-6 py-7 shadow-xl shadow-slate-200/40 md:px-8 md:py-8">
+        <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-emerald-300/15 blur-3xl" />
+        <div className="absolute -left-12 bottom-0 h-36 w-36 rounded-full bg-teal-300/10 blur-3xl" />
 
         <div className="relative grid gap-6 xl:grid-cols-[1.3fr_0.7fr] xl:items-end">
           <div className="space-y-4">
@@ -90,18 +90,18 @@ export default function LecturerAssignments() {
             </div>
             <div className="space-y-2">
               <h1 className="page-title text-3xl text-slate-900 md:text-4xl xl:text-[2.85rem]">Assignments & Submissions</h1>
-              <p className="page-subtitle max-w-3xl text-slate-600">Create global file submission drops for students to upload their work.</p>
+              <p className="page-subtitle max-w-3xl text-slate-600">Create simple upload spaces where students can submit their work.</p>
             </div>
           </div>
 
             <div className="rounded-[1.75rem] border border-white/70 bg-white/90 p-4 shadow-xl shadow-slate-200/40 backdrop-blur-sm">
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Focus mode</p>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Quick actions</p>
                 <h2 className="mt-1 text-lg font-black text-slate-900">Search and publish</h2>
                 <p className="mt-1 text-sm font-medium text-slate-500">Filter assignments or create a new drop.</p>
               </div>
-              <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600">
+              <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-700">
                 <FileText className="h-5 w-5" />
               </div>
             </div>
