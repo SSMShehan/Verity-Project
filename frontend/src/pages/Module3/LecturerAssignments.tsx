@@ -97,7 +97,7 @@ export default function LecturerAssignments() {
             <div className="rounded-[1.75rem] border border-white/70 bg-white/90 p-4 shadow-xl shadow-slate-200/40 backdrop-blur-sm">
             <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Focus mode</p>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Quick actions</p>
                 <h2 className="mt-1 text-lg font-black text-slate-900">Search and publish</h2>
                 <p className="mt-1 text-sm font-medium text-slate-500">Filter assignments or create a new drop.</p>
               </div>
