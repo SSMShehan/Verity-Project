@@ -66,7 +66,11 @@ export default function KanbanBoard() {
     (t.description && t.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const statusLabel = (status: string) => (status === 'Done' ? 'Completed' : status);
+  const statusLabel = (status: string) => {
+    if (status === 'Review') return 'Done';
+    if (status === 'Done') return 'Completed';
+    return status;
+  };
 
   const statusCount = (status: string) => filteredTasks.filter((t) => t.status === status).length;
   const totalTasks = filteredTasks.length;
