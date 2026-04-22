@@ -36,7 +36,9 @@ export default function ManagerNav() {
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-900 to-blue-700 flex items-center justify-center shadow-sm">
             <span className="text-white font-black text-xs">V</span>
           </div>
-          <span className="text-slate-800 font-extrabold text-sm tracking-tight hidden sm:block">Verity Manager</span>
+          <span className="text-slate-800 font-extrabold text-sm tracking-tight hidden sm:block">
+            {user?.name || 'Verity Manager'}
+          </span>
           <span className="hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-[10px] font-black uppercase tracking-wider">
             <Shield className="w-3 h-3" /> Admin
           </span>

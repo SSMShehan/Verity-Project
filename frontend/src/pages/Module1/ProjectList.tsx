@@ -17,9 +17,6 @@ export default function ProjectList() {
       const fromSession = JSON.parse(sessionStorage.getItem('user') || 'null');
       if (fromSession) return fromSession.user || fromSession;
 
-      const fromLocal = JSON.parse(localStorage.getItem('user') || 'null');
-      if (fromLocal) return fromLocal.user || fromLocal;
-
       return null;
     } catch {
       return null;

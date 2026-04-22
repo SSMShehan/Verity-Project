@@ -61,13 +61,11 @@ const getAnnouncements = async (req, res) => {
             { createdAt: 'desc' }
         ],
         include: {
-            reads: true
+            reads: true,
+            author: {
+                select: { id: true, name: true, role: true }
+            }
         }
-    });
-
-    const users = await prisma.user.findMany({
-        where: { id: { in: announcements.map(a => a.authorId) } },
-        select: { id: true, name: true, role: true }
     });
 
     const totalStudents = await prisma.user.count({
@@ -75,7 +73,9 @@ const getAnnouncements = async (req, res) => {
     });
 
     const enhancedAnnouncements = announcements.map(a => {
-        const user = users.find(u => u.id === a.authorId);
+        const user = a.author;
+        const rawRole = user?.role?.toUpperCase() || 'STUDENT';
+        const displayRole = rawRole === 'LECTURER' ? 'Lecturer' : rawRole === 'MANAGER' ? 'Manager' : 'Student';
 
         let readPercentage = 0;
         if (totalStudents > 0) {
@@ -87,7 +87,7 @@ const getAnnouncements = async (req, res) => {
             id: a.id,
             authorId: a.authorId,
             author: user ? user.name : 'Unknown User',
-            role: user ? (user.role === 'LECTURER' ? 'Lecturer' : user.role === 'MANAGER' ? 'Manager' : 'Student') : 'Student',
+            role: displayRole,
             avatar: user ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U',
             title: a.title,
             description: a.content,
@@ -107,9 +107,29 @@ const getProjectAnnouncements = async (req, res) => {
     const { projectId } = req.params;
     const announcements = await prisma.announcement.findMany({
         where: { projectId },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        include: {
+            author: {
+                select: { id: true, name: true, role: true }
+            }
+        }
     });
-    res.status(200).json({ success: true, announcements });
+
+    const enhanced = announcements.map(a => {
+        const user = a.author;
+        const rawRole = user?.role?.toUpperCase() || 'STUDENT';
+        const displayRole = rawRole === 'LECTURER' ? 'Lecturer' : rawRole === 'MANAGER' ? 'Manager' : 'Student';
+
+        return {
+            ...a,
+            author: user ? user.name : 'Unknown User',
+            role: displayRole,
+            avatar: user ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U',
+            timestamp: new Date(a.createdAt).toLocaleString(),
+        };
+    });
+
+    res.status(200).json({ success: true, announcements: enhanced });
 };
 
 const deleteAnnouncement = async (req, res) => {

@@ -499,22 +499,11 @@
 .animate-fade-up-delay-4 { animation-delay: 0.2s;  opacity: 0; animation-fill-mode: forwards; animation-name: fadeUp; animation-duration: 0.4s; }
 
 /* React-Quill Tailwind Reset Overrides */
-.ql-editor ul {
-  padding-left: 1.75em !important;
-}
-
+.ql-editor ul, 
 .ql-editor ol {
-  padding-left: 1.75em !important;
+  padding-left: 0 !important;
 }
 
-.ql-editor ul > li {
-  list-style-type: disc !important;
-  display: list-item !important;
-  margin-bottom: 0.25em !important;
-}
-
-.ql-editor ol > li {
-  list-style-type: decimal !important;
-  display: list-item !important;
-  margin-bottom: 0.25em !important;
-}
+.ql-editor li {
+  padding-left: 0 !important;
+}

@@ -3,6 +3,9 @@ require('dotenv').config();
 
 const redisClient = new Redis(process.env.REDIS_URL, {
     maxRetriesPerRequest: null,
+    enableOfflineQueue: true,
+    connectTimeout: 10000,
+    lazyConnect: true
 });
 
 redisClient.on('error', (err) => {

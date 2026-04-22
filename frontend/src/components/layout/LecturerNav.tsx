@@ -32,7 +32,9 @@ export default function LecturerNav() {
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center shadow-sm">
             <span className="text-white font-black text-xs">V</span>
           </div>
-          <span className="text-slate-800 font-extrabold text-sm tracking-tight hidden sm:block">Verity Lecturer</span>
+          <span className="text-slate-800 font-extrabold text-sm tracking-tight hidden sm:block">
+            {user?.name || 'Verity Lecturer'}
+          </span>
         </Link>
 
         <div className="flex items-center gap-1 relative overflow-x-auto no-scrollbar max-w-[42vw] sm:max-w-none">
