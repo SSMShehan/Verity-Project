@@ -63,7 +63,7 @@ export default function StudentProjectDashboard() {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tighter mb-2 text-slate-800">
               {projectTitle || 'Loading Project...'}
             </h1>
-            <p className="text-slate-500 font-medium text-lg lg:text-xl">Project Workspace & Planning</p>
+            <p className="text-slate-500 font-medium text-lg lg:text-xl">Project Planning</p>
           </div>
           
           <div className="flex items-center gap-3">
