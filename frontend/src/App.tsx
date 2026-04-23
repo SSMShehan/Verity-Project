@@ -59,6 +59,7 @@ import ManagerUserDirectory from './pages/Manager/ManagerUserDirectory';
 import ManagerGroupDirectory from './pages/Manager/ManagerGroupDirectory';
 import ManagerSystemSettings from './pages/Manager/ManagerSystemSettings';
 import ManagerModules from './pages/Manager/ManagerModules';
+import ManagerProfile from './pages/Manager/ManagerProfile';
 
 function App() {
   return (
@@ -153,6 +154,7 @@ function App() {
           <Route path="modules" element={<ManagerModules />} />
           <Route path="announcements" element={<Announcements />} />
           <Route path="settings" element={<ManagerSystemSettings />} />
+          <Route path="profile" element={<ManagerProfile />} />
           
           <Route index element={<Navigate to="dashboard" replace />} />
         </Route>

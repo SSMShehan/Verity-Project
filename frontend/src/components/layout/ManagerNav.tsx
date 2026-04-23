@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, ClipboardCheck, Users, BookOpen, Bell, LogOut, Shield, Activity } from 'lucide-react';
 import NotificationCenter from '../NotificationCenter';
@@ -15,12 +16,31 @@ const managerNav = [
 export default function ManagerNav() {
   const location = useLocation();
 
-  const user = (() => {
+  const [user, setUser] = useState(() => {
     try { 
       const data = JSON.parse(sessionStorage.getItem('user') || '{}');
       return data.user || data;
     } catch { return {}; }
-  })();
+  });
+
+  useEffect(() => {
+    const handleStorage = () => {
+      try {
+        const data = JSON.parse(sessionStorage.getItem('user') || '{}');
+        setUser(data.user || data);
+      } catch (e) { console.error(e); }
+    };
+    window.addEventListener('storage', handleStorage);
+    // Also listen for custom profile update events if needed, 
+    // but storage event is standard for cross-tab and we'll manually fire it.
+    window.addEventListener('profileUpdate', handleStorage);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('profileUpdate', handleStorage);
+    };
+  }, []);
+
   const initials = user?.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || 'MG';
 
   const handleSignOut = () => {
@@ -75,7 +95,7 @@ export default function ManagerNav() {
 
         <div className="flex items-center gap-1 pl-3 border-l border-slate-200/60 shrink-0">
           <NotificationCenter />
-          <div className="hidden sm:flex items-center gap-2.5 px-2 py-1 rounded-full bg-white/55 border border-slate-100">
+          <Link to="/manager/profile" className="hidden sm:flex items-center gap-2.5 px-2 py-1 rounded-full bg-white/55 border border-slate-100 hover:bg-white/80 transition-colors">
             <div className="text-right leading-tight">
               <p className="text-xs font-black text-slate-800">{user?.name || 'Admin'}</p>
               <p className="text-[10px] font-bold uppercase tracking-widest text-blue-700 mt-0.5">Platform Manager</p>
@@ -83,7 +103,7 @@ export default function ManagerNav() {
             <div className="w-8 h-8 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-800 text-xs font-black shadow-sm">
               {initials}
             </div>
-          </div>
+          </Link>
           <button onClick={handleSignOut} className="p-2 rounded-full hover:bg-rose-50 text-slate-400 hover:text-rose-500 transition-colors" title="Sign out">
             <LogOut className="w-5 h-5" />
           </button>

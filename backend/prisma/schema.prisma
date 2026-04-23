@@ -21,6 +21,10 @@ model User {
   github       String?
   linkedin     String?
   skills       String?
+  bio          String?
+  designation  String?
+  emergencyPhone String?
+  workEmail    String?
 
   // Gamification
   xpPoints     Int      @default(0)

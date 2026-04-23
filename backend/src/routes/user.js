@@ -21,6 +21,10 @@ router.get('/:id', async (req, res) => {
                  github: true, 
                  linkedin: true, 
                  skills: true,
+                 bio: true,
+                 designation: true,
+                 emergencyPhone: true,
+                 workEmail: true,
                  xpPoints: true,
                  badges: true,
                  modules: {
@@ -66,12 +70,15 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, email, indexNumber, password, phone, github, linkedin, skills } = req.body;
+        const { name, email, indexNumber, password, phone, github, linkedin, skills, bio, designation, emergencyPhone, workEmail } = req.body;
 
         const updateData = {};
         if (name) updateData.name = name;
         if (email) {
-            if (!/@(gmail|yahoo)/.test(email)) {
+            // Managers can use institutional emails; only enforce @gmail/@yahoo for students/lecturers
+            const userForRole = await prisma.user.findUnique({ where: { id }, select: { role: true } });
+            const isManager = userForRole?.role?.toUpperCase() === 'MANAGER';
+            if (!isManager && !/@(gmail|yahoo)/.test(email)) {
                 return res.status(400).json({ success: false, message: 'Email domain must be @gmail or @yahoo' });
             }
             updateData.email = email;
@@ -109,6 +116,10 @@ router.put('/:id', async (req, res) => {
             updateData.linkedin = linkedin;
         }
         if (skills !== undefined) updateData.skills = skills;
+        if (bio !== undefined) updateData.bio = bio;
+        if (designation !== undefined) updateData.designation = designation;
+        if (emergencyPhone !== undefined) updateData.emergencyPhone = emergencyPhone;
+        if (workEmail !== undefined) updateData.workEmail = workEmail;
         
         if (password && password.trim() !== '') {
              const salt = await bcrypt.genSalt(10);
@@ -121,6 +132,7 @@ router.put('/:id', async (req, res) => {
              select: { 
                  id: true, name: true, email: true, indexNumber: true, role: true,
                  phone: true, github: true, linkedin: true, skills: true,
+                 bio: true, designation: true, emergencyPhone: true, workEmail: true,
                  modules: {
                     select: {
                         id: true,
