@@ -50,9 +50,12 @@ Verity-Project/
 ## ⚙️ Getting Started
 
 ### Prerequisites
-- Node.js v18+
-- PostgreSQL
-- Redis
+- Node.js **v18+** (v20 recommended)
+- PostgreSQL **v14+**
+- Redis **v6+** (or Upstash cloud Redis)
+
+> 📖 See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the full system design.
+> 📡 See [docs/API.md](./docs/API.md) for endpoint reference.
 
 ### 1. Clone the Repository
 ```bash
