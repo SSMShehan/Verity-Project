@@ -29,7 +29,7 @@ export default function TeamManagement() {
       <div className="flex justify-between items-center bg-gradient-to-r from-indigo-50/70 via-white to-teal-50/40 p-6 rounded-3xl shadow-sm border border-indigo-100">
         <div>
           <h2 className="text-3xl font-black text-slate-800 tracking-tight">Team Management</h2>
-          <p className="text-slate-500 font-medium text-sm mt-1">View your team members, and assigned functions.</p>
+          <p className="text-slate-500 font-medium text-sm mt-1">View your team members,roles, and assigned functions.</p>
         </div>
       </div>
 
