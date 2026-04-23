@@ -27,8 +27,8 @@ export default function LecturerGroupList() {
 
             return {
               id: p.id,
-              name: `Group ${(index + 1).toString().padStart(2, '0')}`,
-              project: p.title,
+              name: p.title,
+              project: `Group ${(index + 1).toString().padStart(2, '0')}`,
               moduleId: moduleId,
               members: p.members?.length || 0,
               health: healthScore,

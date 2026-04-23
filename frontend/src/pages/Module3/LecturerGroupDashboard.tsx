@@ -9,6 +9,7 @@ export default function LecturerGroupDashboard() {
   const [pendingReviews, setPendingReviews] = useState(0);
   const [atRiskMembers, setAtRiskMembers] = useState(0);
   const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
+  const [projectTitle, setProjectTitle] = useState('Loading Project...');
 
   const tabs = [
     { name: 'Intelligence Overview', path: `/lecturer/projects/${id}`, icon: LayoutDashboard, exact: true },
@@ -45,6 +46,9 @@ export default function LecturerGroupDashboard() {
           const fairnessData = await fairnessResult.value.json();
           if (fairnessData?.success && Array.isArray(fairnessData.members)) {
             nextAtRisk = fairnessData.members.filter((m: any) => Number(m.score) < 60).length;
+          }
+          if (fairnessData?.success && fairnessData.project?.title) {
+            if (!cancelled) setProjectTitle(fairnessData.project.title);
           }
         }
 
@@ -94,10 +98,10 @@ export default function LecturerGroupDashboard() {
               <span className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-emerald-100 bg-white text-emerald-700">
                 Group Intelligence
               </span>
-              <span className="badge badge-sage text-[10px] py-0.5">Project #{id}</span>
+              <span className="badge badge-sage text-[10px] py-0.5">Project #{id?.substring(0, 8)}</span>
               <span className="badge badge-green text-[10px] py-0.5">Healthy</span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900">E-Commerce AI Agent</h1>
+            <h1 className="text-4xl md:text-5xl font-black tracking-tight text-slate-900">{projectTitle}</h1>
             <p className="text-slate-600 font-semibold mt-2">Lecturer command workspace for members, reports, fairness, engagement, and GitHub evidence.</p>
           </div>
 

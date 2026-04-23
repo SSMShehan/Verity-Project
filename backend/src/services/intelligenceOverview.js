@@ -225,7 +225,8 @@ async function syncRiskFlagsToDb(projectId, detectedAnomalies, project) {
             });
             
             if (anomaly.severity === 'high') {
-                await notifyByRole('MANAGER', { type: 'high_risk', title: `High Severity AI Risk detected for group ${project.title}: ${anomaly.title}`, message: anomaly.description, link: `/manager/groups`, metadata: {} }).catch(()=>{});
+                // Disabled AI risk notification to prevent spam
+                // await notifyByRole('MANAGER', { type: 'high_risk', title: `High Severity AI Risk detected for group ${project.title}: ${anomaly.title}`, message: anomaly.description, link: `/manager/groups`, metadata: {} }).catch(()=>{});
             }
         }
     }
