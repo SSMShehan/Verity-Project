@@ -90,7 +90,7 @@ http://localhost:5173
 
 | Name | Role | GitHub |
 |---|---|---|
-| Shehan | Team Lead / Backend | [@SSMShehan](https://github.com/SSMShehan) |
+| Shehan | Backend Developer| [@SSMShehan](https://github.com/SSMShehan) |
 | Shakya | Frontend Developer | [@Shakya202](https://github.com/Shakya202) |
 | Sachini | Frontend Developer | [@Sachini-N](https://github.com/Sachini-N) |
 | Kavindra | Module Developer | [@kavi419](https://github.com/kavi419) |
